@@ -1,9 +1,9 @@
-// Google Gemini AI Service
-// API: https://ai.google.dev/docs
+// Groq AI Service
+// API: https://console.groq.com/docs
+// Быстрее Gemini, работает из РФ, бесплатно
 
-const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-const API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
-const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
+const GROQ_API_KEY = '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';
+const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export interface AIResponse {
   text: string;
@@ -55,7 +55,7 @@ const systemPrompts = {
 Выдели 1-2 главных приоритета для работы.`,
 };
 
-// Отправка сообщения в Gemini
+// Отправка сообщения в Groq
 export async function sendMessage(
   message: string, 
   context: {
@@ -64,43 +64,47 @@ export async function sendMessage(
     conversationHistory?: Array<{role: string; content: string}>;
   }
 ): Promise<AIResponse> {
+  const systemPrompt = systemPrompts[context.type as keyof typeof systemPrompts] || '';
   const prompt = buildPrompt(message, context);
   
   try {
-    console.log('Sending to Gemini:', prompt.substring(0, 100));
+    console.log('Sending to Groq:', prompt.substring(0, 100));
     
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+    const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 500,
-        },
+        model: 'llama-3.1-70b-versatile',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7,
+        max_tokens: 500,
+        top_p: 1,
+        stream: false,
       }),
     });
 
-    console.log('Gemini response status:', response.status);
+    console.log('Groq response status:', response.status);
     
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Gemini API error:', errorData);
-      throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('Groq API error:', errorData);
+      throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
-    console.log('Gemini response data:', data);
+    console.log('Groq response data:', data);
     
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, я не могу ответить сейчас.';
+    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
     
     return { text: cleanResponse(text) };
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('Groq API error:', error);
     return { 
       text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' + 
             (error instanceof Error ? error.message : 'Неизвестная ошибка')
@@ -108,14 +112,28 @@ export async function sendMessage(
   }
 }
 
-// Анализ изображения
-export async function analyzeImage(
-  imageBase64: string,
-  prompt: string
-): Promise<AIResponse> {
+// Анализ еды по фото (через Gemini Vision, так как Groq не поддерживает изображения)
+export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
+  // Используем Gemini только для анализа изображений
+  const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
+  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
+  
+  const prompt = `Проанализируй это блюдо. Определи:
+1. Что это за блюдо
+2. Примерный вес порции
+3. КБЖУ на порцию (калории, белки, жиры, углеводы)
+
+Ответ дай в формате:
+Блюдо: [название]
+Вес: [граммы]г
+Калории: [число] ккал
+Белки: [число]г
+Жиры: [число]г
+Углеводы: [число]г
+
+Краткий комментарий по полезности.`;
+
   try {
-    console.log('Analyzing image with Gemini Vision');
-    
     const response = await fetch(`${API_URL_VISION}?key=${API_KEY}`, {
       method: 'POST',
       headers: {
@@ -140,70 +158,33 @@ export async function analyzeImage(
       }),
     });
 
-    console.log('Gemini Vision response status:', response.status);
-    
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini Vision API error:', errorData);
-      throw new Error(`Gemini API error: ${response.status}`);
+      // Если Gemini не работает, возвращаем заглушку
+      return { 
+        text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
+        nutrition: undefined
+      };
     }
 
     const data = await response.json();
-    console.log('Gemini Vision response data:', data);
-    
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать изображение.';
     
-    return { text: cleanResponse(text) };
+    const nutrition = parseNutrition(text);
+    
+    return { text: cleanResponse(text), nutrition };
   } catch (error) {
     console.error('Gemini Image API error:', error);
-    return { text: 'Произошла ошибка при анализе изображения.\n\n' + (error instanceof Error ? error.message : 'Неизвестная ошибка') };
+    return { 
+      text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
+      nutrition: undefined
+    };
   }
-}
-
-// Анализ еды по фото
-export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  const prompt = `Проанализируй это блюдо. Определи:
-1. Что это за блюдо
-2. Примерный вес порции
-3. КБЖУ на порцию (калории, белки, жиры, углеводы)
-
-Ответ дай в формате:
-Блюдо: [название]
-Вес: [граммы]г
-Калории: [число] ккал
-Белки: [число]г
-Жиры: [число]г
-Углеводы: [число]г
-
-Краткий комментарий по полезности.`;
-
-  const result = await analyzeImage(imageBase64, prompt);
-  
-  // Парсим КБЖУ из ответа
-  const nutrition = parseNutrition(result.text);
-  
-  return { ...result, nutrition };
-}
-
-// Анализ фото прогресса
-export async function analyzeProgressPhoto(imageBase64: string, userData: any): Promise<AIResponse> {
-  const prompt = `Проанализируй фото прогресса пользователя.
-Данные пользователя: вес ${userData.weight}кг, цель: ${userData.goal}.
-
-Дай оценку:
-1. Видимый прогресс (если есть сравнение)
-2. Рекомендации по продолжению пути
-3. Что можно улучшить
-
-Будь тактичным и поддерживающим. Ответ 2-3 предложения.`;
-
-  return analyzeImage(imageBase64, prompt);
 }
 
 // Построение промпта с контекстом
 function buildPrompt(message: string, context: any): string {
-  const systemPrompt = systemPrompts[context.type as keyof typeof systemPrompts] || '';
-  
   let userDataContext = '';
   
   if (context.userData) {
@@ -243,9 +224,7 @@ function buildPrompt(message: string, context: any): string {
     }
   }
   
-  return `${systemPrompt}
-
-${userDataContext}
+  return `${userDataContext}
 
 Вопрос пользователя: ${message}
 
