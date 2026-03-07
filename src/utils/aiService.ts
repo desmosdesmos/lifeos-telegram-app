@@ -2,7 +2,8 @@
 // API: https://ai.google.dev/docs
 
 const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const API_URL = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent';
+const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
 
 export interface AIResponse {
   text: string;
@@ -66,6 +67,8 @@ export async function sendMessage(
   const prompt = buildPrompt(message, context);
   
   try {
+    console.log('Sending to Gemini:', prompt.substring(0, 100));
+    
     const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: 'POST',
       headers: {
@@ -82,17 +85,26 @@ export async function sendMessage(
       }),
     });
 
+    console.log('Gemini response status:', response.status);
+    
     if (!response.ok) {
-      throw new Error(`Gemini API error: ${response.status}`);
+      const errorData = await response.json();
+      console.error('Gemini API error:', errorData);
+      throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
+    console.log('Gemini response data:', data);
+    
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, я не могу ответить сейчас.';
     
     return { text: cleanResponse(text) };
   } catch (error) {
     console.error('Gemini API error:', error);
-    return { text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.' };
+    return { 
+      text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' + 
+            (error instanceof Error ? error.message : 'Неизвестная ошибка')
+    };
   }
 }
 
@@ -102,7 +114,9 @@ export async function analyzeImage(
   prompt: string
 ): Promise<AIResponse> {
   try {
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+    console.log('Analyzing image with Gemini Vision');
+    
+    const response = await fetch(`${API_URL_VISION}?key=${API_KEY}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -126,17 +140,23 @@ export async function analyzeImage(
       }),
     });
 
+    console.log('Gemini Vision response status:', response.status);
+    
     if (!response.ok) {
+      const errorData = await response.json();
+      console.error('Gemini Vision API error:', errorData);
       throw new Error(`Gemini API error: ${response.status}`);
     }
 
     const data = await response.json();
+    console.log('Gemini Vision response data:', data);
+    
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать изображение.';
     
     return { text: cleanResponse(text) };
   } catch (error) {
     console.error('Gemini Image API error:', error);
-    return { text: 'Произошла ошибка при анализе изображения.' };
+    return { text: 'Произошла ошибка при анализе изображения.\n\n' + (error instanceof Error ? error.message : 'Неизвестная ошибка') };
   }
 }
 
