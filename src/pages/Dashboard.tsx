@@ -3,11 +3,11 @@ import { useNavigate } from 'react-router';
 import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap } from 'lucide-react';
 
 const lifeAreas = [
-  { name: 'Nutrition', score: 80, icon: Apple, path: '/nutrition', color: '#22C55E', trend: '+5' },
-  { name: 'Sleep', score: 65, icon: Moon, path: '/sleep', color: '#4DA3FF', trend: '-3' },
-  { name: 'Fitness', score: 70, icon: Dumbbell, path: '/fitness', color: '#F59E0B', trend: '+8' },
-  { name: 'Finances', score: 60, icon: DollarSign, path: '/finances', color: '#22C55E', trend: '+2' },
-  { name: 'Goals', score: 85, icon: Target, path: '/goals', color: '#4DA3FF', trend: '+12' },
+  { name: 'Питание', score: 80, icon: Apple, path: '/nutrition', color: '#22C55E', trend: '+5' },
+  { name: 'Сон', score: 65, icon: Moon, path: '/sleep', color: '#4DA3FF', trend: '-3' },
+  { name: 'Фитнес', score: 70, icon: Dumbbell, path: '/fitness', color: '#F59E0B', trend: '+8' },
+  { name: 'Финансы', score: 60, icon: DollarSign, path: '/finances', color: '#22C55E', trend: '+2' },
+  { name: 'Цели', score: 85, icon: Target, path: '/goals', color: '#4DA3FF', trend: '+12' },
 ];
 
 export function Dashboard() {
@@ -24,8 +24,8 @@ export function Dashboard() {
       >
         <div className="flex items-center justify-between mb-1">
           <div>
-            <h1 className="text-3xl mb-1 tracking-tight">Life Control</h1>
-            <p className="text-white/40 text-sm">Your optimization dashboard</p>
+            <h1 className="text-3xl mb-1 tracking-tight">Контроль жизни</h1>
+            <p className="text-white/40 text-sm">Панель оптимизации</p>
           </div>
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -36,7 +36,7 @@ export function Dashboard() {
         </div>
       </motion.div>
 
-      {/* Life Score Card - Premium Design */}
+      {/* Life Score Card */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -60,7 +60,7 @@ export function Dashboard() {
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-3">
             <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-            <p className="text-white/50 text-sm tracking-wide uppercase">System Status</p>
+            <p className="text-white/50 text-sm tracking-wide uppercase">Статус системы</p>
           </div>
 
           <div className="flex items-end gap-3 mb-5">
@@ -75,7 +75,7 @@ export function Dashboard() {
             </div>
           </div>
 
-          {/* Enhanced progress bar with segments */}
+          {/* Progress bar */}
           <div className="relative">
             <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm">
               <motion.div
@@ -87,21 +87,11 @@ export function Dashboard() {
                 <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse" />
               </motion.div>
             </div>
-            {/* Segment markers */}
-            <div className="absolute top-0 left-0 w-full h-full flex items-center">
-              {[25, 50, 75].map((mark) => (
-                <div
-                  key={mark}
-                  className="h-2.5 w-px bg-[#0B0B0F]"
-                  style={{ marginLeft: mark === 25 ? '25%' : '25%' }}
-                />
-              ))}
-            </div>
           </div>
 
           <div className="flex items-center justify-between mt-3">
-            <p className="text-white/40 text-xs">Overall Balance</p>
-            <p className="text-white/40 text-xs">Excellent</p>
+            <p className="text-white/40 text-xs">Общий баланс</p>
+            <p className="text-white/40 text-xs">Отлично</p>
           </div>
         </div>
       </motion.div>
@@ -109,8 +99,8 @@ export function Dashboard() {
       {/* Life Areas Section */}
       <div className="mb-4">
         <div className="flex items-center justify-between px-1 mb-3">
-          <h2 className="text-lg text-white/70">Life Areas</h2>
-          <button className="text-[#4DA3FF] text-sm">View All</button>
+          <h2 className="text-lg text-white/70">Сферы жизни</h2>
+          <button className="text-[#4DA3FF] text-sm">Все</button>
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -128,7 +118,6 @@ export function Dashboard() {
                 whileTap={{ scale: 0.97 }}
                 className="glass-card rounded-[24px] p-5 text-left relative overflow-hidden group"
               >
-                {/* Hover gradient effect */}
                 <div
                   className="absolute top-0 right-0 w-28 h-28 rounded-full blur-[60px] opacity-0 group-active:opacity-30 transition-opacity duration-300"
                   style={{ backgroundColor: area.color }}
@@ -179,26 +168,32 @@ export function Dashboard() {
         transition={{ delay: 0.5 }}
         className="mt-4"
       >
-        <h2 className="text-lg text-white/70 px-1 mb-3">Quick Actions</h2>
+        <h2 className="text-lg text-white/70 px-1 mb-3">Быстрые действия</h2>
         <div className="glass-card rounded-[24px] p-4 space-y-2">
-          <button className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
+          <button 
+            onClick={() => navigate('/analysis')}
+            className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors"
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[12px] bg-[#4DA3FF]/15 flex items-center justify-center">
                 <Zap className="w-5 h-5 text-[#4DA3FF]" />
               </div>
-              <span className="text-sm">Get AI Insights</span>
+              <span className="text-sm">Получить AI рекомендации</span>
             </div>
             <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
           </button>
 
-          <button className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
+          <button 
+            onClick={() => navigate('/goals')}
+            className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors"
+          >
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-[12px] bg-[#22C55E]/15 flex items-center justify-center">
                 <Target className="w-5 h-5 text-[#22C55E]" />
               </div>
-              <span className="text-sm">Set New Goal</span>
+              <span className="text-sm">Поставить новую цель</span>
             </div>
             <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
