@@ -19,7 +19,7 @@ export function Layout() {
         <Outlet />
       </div>
 
-      {/* Bottom Navigation с усиленным blur */}
+      {/* Bottom Navigation с анимациями */}
       <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[390px]">
         <div 
           className="rounded-[24px] px-4 py-3 flex items-center justify-around"
@@ -39,12 +39,21 @@ export function Layout() {
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`flex flex-col items-center gap-1 transition-all ${
-                  isActive ? 'text-[#4DA3FF]' : 'text-white/60'
-                }`}
+                className="flex flex-col items-center gap-1 transition-all duration-300"
               >
-                <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-                <span className="text-[10px]">{item.label}</span>
+                <Icon 
+                  className={`w-6 h-6 transition-all duration-300 ${
+                    isActive 
+                      ? 'text-[#4DA3FF] scale-110 -translate-y-1' 
+                      : 'text-white/60 hover:text-white/80'
+                  }`} 
+                  strokeWidth={isActive ? 2.5 : 2} 
+                />
+                <span className={`text-[10px] transition-all duration-300 ${
+                  isActive ? 'text-[#4DA3FF] font-bold' : 'text-white/60'
+                }`}>
+                  {item.label}
+                </span>
               </button>
             );
           })}
