@@ -78,7 +78,7 @@ export function Profile() {
 
       {/* Edit/Save Buttons */}
       {isEditing && (
-        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 mb-6">
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex gap-3 mb-6 pb-20">
           <button onClick={() => { setEditedData(state.profile); setIsEditing(false); }} className="flex-1 py-3 glass-card rounded-[16px] flex items-center justify-center gap-2">
             <X className="w-4 h-4" /> Отмена
           </button>
