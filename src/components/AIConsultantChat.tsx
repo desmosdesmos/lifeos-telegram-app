@@ -115,9 +115,10 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
     setIsTyping(true);
 
     try {
+      // Передаём ВСЕ данные в AI
       const response = await sendMessage(text, {
         type,
-        userData,
+        userData, // Все данные из раздела
       });
       
       setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);

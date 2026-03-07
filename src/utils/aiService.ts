@@ -191,44 +191,269 @@ function buildPrompt(message: string, context: any): string {
     const { userData } = context;
     
     if (context.type === 'nutrition') {
+      const totalCalories = userData.meals?.reduce((sum: number, m: any) => sum + m.calories, 0) || 0;
+      const totalProtein = userData.meals?.reduce((sum: number, m: any) => sum + m.protein, 0) || 0;
+      const totalFat = userData.meals?.reduce((sum: number, m: any) => sum + m.fat, 0) || 0;
+      const totalCarbs = userData.meals?.reduce((sum: number, m: any) => sum + m.carbs, 0) || 0;
+      const mealsCount = userData.meals?.length || 0;
+      
+      // Последние приёмы пищи
+      const recentMeals = userData.meals?.slice(-5).map((m: any) => 
+        `• ${m.name}: ${m.calories} ккал (Б:${m.protein}г Ж:${m.fat}г У:${m.carbs}г) ${m.time}`
+      ).join('\n') || 'Нет записей';
+      
       userDataContext = `
-Данные пользователя:
-- Съедено сегодня: ${userData.macros?.calories || 0} ккал (Б: ${userData.macros?.protein || 0}г, Ж: ${userData.macros?.fat || 0}г, У: ${userData.macros?.carbs || 0}г)
-- Цель: ${userData.targets?.calories || 2000} ккал, Б: ${userData.targets?.protein || 120}г, Ж: ${userData.targets?.fat || 65}г, У: ${userData.targets?.carbs || 250}г
+📊 ДАННЫЕ ПИТАНИЯ:
+Профиль: ${userData.profile?.name || 'Пользователь'}, ${userData.profile?.age || '?'} лет, вес ${userData.profile?.weight || '?'} кг, рост ${userData.profile?.height || '?'} см
+Цель: ${userData.profile?.goal || 'Не указана'}
+Образ жизни: ${userData.profile?.lifestyle || 'Не указан'}
+
+📈 ИТОГИ ЗА СЕГОДНЯ:
+• Калории: ${totalCalories} ккал
+• Белки: ${totalProtein}г (${Math.round(totalProtein * 4 / Math.max(totalCalories, 1) * 100)}% от калорий)
+• Жиры: ${totalFat}г (${Math.round(totalFat * 9 / Math.max(totalCalories, 1) * 100)}% от калорий)
+• Углеводы: ${totalCarbs}г (${Math.round(totalCarbs * 4 / Math.max(totalCalories, 1) * 100)}% от калорий)
+• Приёмов пищи: ${mealsCount}
+
+🍽 ПОСЛЕДНИЕ ПРИЁМЫ ПИЩИ:
+${recentMeals}
+
+⚠️ ПРОБЛЕМЫ:
+${totalCalories < 1200 && totalCalories > 0 ? '• Критически мало калорий (<1200)' : ''}
+${totalProtein < 60 && mealsCount > 0 ? '• Недостаток белка' : ''}
+${totalFat < 30 && mealsCount > 0 ? '• Недостаток жиров' : ''}
+${totalCarbs < 100 && mealsCount > 0 ? '• Недостаток углеводов' : ''}
+${mealsCount < 3 && mealsCount > 0 ? '• Слишком мало приёмов пищи' : ''}
+${mealsCount === 0 ? '• Нет данных о питании' : ''}
 `;
     } else if (context.type === 'sleep') {
+      const avgQuality = userData.sleepDays?.length > 0 
+        ? Math.round(userData.sleepDays.reduce((sum: number, d: any) => sum + d.quality, 0) / userData.sleepDays.length)
+        : 0;
+      const totalDays = userData.sleepDays?.length || 0;
+      
+      // Детали последнего сна
+      const lastSleep = userData.sleepDays?.[userData.sleepDays.length - 1];
+      
+      // Сон за последние 7 дней
+      const last7Days = userData.sleepDays?.slice(-7).map((d: any) => 
+        `• ${d.date}: ${d.duration}, качество ${d.quality}%, глубокий ${d.deepSleep}, REM ${d.remSleep}`
+      ).join('\n') || 'Нет записей';
+      
       userDataContext = `
-Данные пользователя:
-- Среднее качество сна: ${userData.avgQuality || 0}%
-- Записей о сне: ${userData.sleepDays?.length || 0}
+😴 ДАННЫЕ СНА:
+Профиль: ${userData.profile?.name || 'Пользователь'}, ${userData.profile?.age || '?'} лет
+
+📈 ОБЩАЯ СТАТИСТИКА:
+• Дней записей: ${totalDays}
+• Среднее качество: ${avgQuality}%
+• Оценка: ${avgQuality >= 80 ? 'Отлично' : avgQuality >= 60 ? 'Нормально' : 'Плохо'}
+
+🌙 ПОСЛЕДНИЙ СОН:
+${lastSleep ? `• Дата: ${lastSleep.date}
+• Отбой: ${lastSleep.bedtime}
+• Подъём: ${lastSleep.wakeTime}
+• Продолжительность: ${lastSleep.duration}
+• Качество: ${lastSleep.quality}%
+• Глубокий сон: ${lastSleep.deepSleep}
+• REM сон: ${lastSleep.remSleep}
+• Лёгкий сон: ${lastSleep.lightSleep}` : 'Нет данных'}
+
+📊 СОН ЗА ПОСЛЕДНИЕ 7 ДНЕЙ:
+${last7Days}
+
+⚠️ ПРОБЛЕМЫ:
+${totalDays === 0 ? '• Нет данных о сне' : ''}
+${avgQuality < 60 && avgQuality > 0 ? '• Критически низкое качество сна (<60%)' : ''}
+${avgQuality >= 60 && avgQuality < 80 ? '• Качество сна ниже оптимального' : ''}
+${lastSleep && parseInt(lastSleep.duration) < 7 ? '• Недостаточная продолжительность (<7ч)' : ''}
+${lastSleep && parseInt(lastSleep.duration) > 9 ? '• Избыточная продолжительность (>9ч)' : ''}
 `;
     } else if (context.type === 'fitness') {
+      const completedWorkouts = userData.workouts?.filter((w: any) => w.completed) || [];
+      const plannedWorkouts = userData.workouts?.filter((w: any) => !w.completed) || [];
+      const totalCaloriesBurned = completedWorkouts.reduce((sum: number, w: any) => sum + w.calories, 0);
+      const totalDuration = completedWorkouts.reduce((sum: number, w: any) => sum + w.duration, 0);
+      
+      // Последние тренировки
+      const recentWorkouts = completedWorkouts.slice(-5).map((w: any) => 
+        `• ${w.name} (${w.date}): ${w.duration} мин, ${w.calories} ккал, ${w.exercises} упр.`
+      ).join('\n') || 'Нет тренировок';
+      
       userDataContext = `
-Данные пользователя:
-- Тренировок выполнено: ${userData.workouts?.filter((w: any) => w.completed).length || 0}
-- Всего тренировок: ${userData.workouts?.length || 0}
+💪 ДАННЫЕ ФИТНЕСА:
+Профиль: ${userData.profile?.name || 'Пользователь'}, цель: ${userData.profile?.goal || 'Не указана'}
+
+📈 ОБЩАЯ СТАТИСТИКА:
+• Выполнено тренировок: ${completedWorkouts.length}
+• Запланировано: ${plannedWorkouts.length}
+• Всего сожжено: ${totalCaloriesBurned} ккал
+• Общая длительность: ${totalDuration} мин (${Math.round(totalDuration / 60)}ч ${totalDuration % 60}мин)
+• Среднее за тренировку: ${completedWorkouts.length > 0 ? Math.round(totalCaloriesBurned / completedWorkouts.length) : 0} ккал
+
+🏋️ ПОСЛЕДНИЕ ТРЕНИРОВКИ:
+${recentWorkouts}
+
+📅 ПЛАНЫ:
+${plannedWorkouts.length > 0 ? plannedWorkouts.map((w: any) => `• ${w.name}: ${w.duration} мин, ~${w.calories} ккал`).join('\n') : 'Нет запланированных'}
+
+⚠️ ПРОБЛЕМЫ:
+${completedWorkouts.length === 0 ? '• Нет выполненных тренировок' : ''}
+${completedWorkouts.length < 2 ? '• Мало активности (<2 в неделю)' : ''}
+${completedWorkouts.length >= 5 ? '• Отличная активность!' : ''}
 `;
     } else if (context.type === 'finance') {
+      const income = userData.transactions?.filter((t: any) => t.type === 'income') || [];
+      const expenses = userData.transactions?.filter((t: any) => t.type === 'expense') || [];
+      const totalIncome = income.reduce((sum: number, t: any) => sum + t.amount, 0);
+      const totalExpenses = expenses.reduce((sum: number, t: any) => sum + t.amount, 0);
+      const savings = totalIncome - totalExpenses;
+      const savingsRate = totalIncome > 0 ? Math.round((savings / totalIncome) * 100) : 0;
+      
+      // Расходы по категориям
+      const expensesByCategory: Record<string, number> = {};
+      expenses.forEach((t: any) => {
+        expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
+      });
+      const topCategories = Object.entries(expensesByCategory)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([cat, amount]) => `• ${cat}: ${amount.toLocaleString()}₽`)
+        .join('\n') || 'Нет данных';
+      
+      // Последние операции
+      const recentTransactions = userData.transactions?.slice(-10).reverse().map((t: any) => 
+        `• ${t.type === 'income' ? '+' : '-'}${t.amount.toLocaleString()}₽ — ${t.name} (${t.category}, ${t.date})`
+      ).join('\n') || 'Нет операций';
+      
       userDataContext = `
-Данные пользователя:
-- Доходы: ${userData.income || 0}₽
-- Расходы: ${userData.expenses || 0}₽
-- Накопления: ${userData.savings || 0}₽ (${userData.savingsRate || 0}%)
+💰 ФИНАНСОВЫЕ ДАННЫЕ:
+
+📈 ОБЩАЯ СТАТИСТИКА:
+• Доходы: ${totalIncome.toLocaleString()}₽
+• Расходы: ${totalExpenses.toLocaleString()}₽
+• Баланс: ${savings >= 0 ? '+' : ''}${savings.toLocaleString()}₽
+• Процент накоплений: ${savingsRate}%
+• Операций всего: ${userData.transactions?.length || 0}
+
+📊 ТОП РАСХОДОВ ПО КАТЕГОРИЯМ:
+${topCategories}
+
+📋 ПОСЛЕДНИЕ ОПЕРАЦИИ:
+${recentTransactions}
+
+⚠️ ПРОБЛЕМЫ:
+${userData.transactions?.length === 0 ? '• Нет финансовых записей' : ''}
+${savings < 0 ? '• Расходы превышают доходы!' : ''}
+${savingsRate < 10 && savingsRate >= 0 ? '• Мало откладываете (<10%)' : ''}
+${savingsRate >= 10 && savingsRate < 20 ? '• Нормально, но можно лучше (10-20%)' : ''}
+${savingsRate >= 20 ? '• Отличные накопления! (20%+)' : ''}
 `;
     } else if (context.type === 'goals') {
+      const activeGoals = userData.goals?.filter((g: any) => !g.completed) || [];
+      const completedGoals = userData.goals?.filter((g: any) => g.completed) || [];
+      
+      // Прогресс по активным целям
+      const goalsProgress = activeGoals.map((g: any) => {
+        const percentage = g.target > 0 ? Math.round((g.progress / g.target) * 100) : 0;
+        return `• ${g.title}: ${g.progress}/${g.target} ${g.unit} (${percentage}%)
+  Дедлайн: ${g.deadline || 'Не указан'}
+  ${g.description || ''}`;
+      }).join('\n\n') || 'Нет активных целей';
+      
+      // Выполненные цели
+      const completedList = completedGoals.map((g: any) => 
+        `• ${g.title} ✓`
+      ).join('\n') || 'Нет выполненных';
+      
       userDataContext = `
-Данные пользователя:
-- Активных целей: ${userData.goals?.filter((g: any) => !g.completed).length || 0}
-- Выполнено целей: ${userData.goals?.filter((g: any) => g.completed).length || 0}
+🎯 ЦЕЛИ:
+
+📈 ОБЩАЯ СТАТИСТИКА:
+• Активных целей: ${activeGoals.length}
+• Выполнено: ${completedGoals.length}
+• Процент выполнения: ${userData.goals?.length > 0 ? Math.round((completedGoals.length / userData.goals.length) * 100) : 0}%
+
+🎯 АКТИВНЫЕ ЦЕЛИ:
+${goalsProgress}
+
+✅ ВЫПОЛНЕННЫЕ ЦЕЛИ:
+${completedList}
+
+⚠️ ПРОБЛЕМЫ:
+${userData.goals?.length === 0 ? '• Нет поставленных целей' : ''}
+${activeGoals.length > 5 ? '• Слишком много целей (>5)' : ''}
+${activeGoals.length === 0 && completedGoals.length === 0 ? '• Нет движения к целям' : ''}
+${activeGoals.some((g: any) => g.progress === 0) ? '• Есть цели без прогресса' : ''}
+`;
+    } else if (context.type === 'analysis') {
+      // Полный анализ всех сфер
+      const nutritionScore = Math.min(100, (userData.meals?.length || 0) * 20);
+      const sleepScore = userData.sleepDays?.length > 0 
+        ? Math.round(userData.sleepDays.reduce((sum: number, d: any) => sum + d.quality, 0) / userData.sleepDays.length)
+        : 0;
+      const fitnessScore = Math.min(100, (userData.workouts?.filter((w: any) => w.completed).length || 0) * 20);
+      
+      const totalIncome = userData.transactions?.filter((t: any) => t.type === 'income').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+      const totalExpenses = userData.transactions?.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+      const financeScore = totalIncome > 0 ? Math.min(100, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100 * 1.5)) : 0;
+      
+      const goalsScore = userData.goals?.length > 0 
+        ? Math.round((userData.goals.filter((g: any) => g.completed).length / userData.goals.length) * 100)
+        : 0;
+      
+      userDataContext = `
+📊 ПОЛНЫЙ АНАЛИЗ ЖИЗНИ:
+
+🍽 ПИТАНИЕ: ${nutritionScore}/100
+• Приёмов пищи: ${userData.meals?.length || 0}
+${nutritionScore < 40 ? '• Критически мало данных' : ''}
+${nutritionScore >= 40 && nutritionScore < 70 ? '• Нужно больше записей' : ''}
+${nutritionScore >= 70 ? '• Хороший учёт питания' : ''}
+
+😴 СОН: ${sleepScore}/100
+• Дней записей: ${userData.sleepDays?.length || 0}
+${sleepScore === 0 ? '• Нет данных о сне' : ''}
+${sleepScore > 0 && sleepScore < 60 ? '• Плохое качество сна' : ''}
+${sleepScore >= 60 && sleepScore < 80 ? '• Среднее качество' : ''}
+${sleepScore >= 80 ? '• Отличное качество сна' : ''}
+
+💪 ФИТНЕС: ${fitnessScore}/100
+• Тренировок выполнено: ${userData.workouts?.filter((w: any) => w.completed).length || 0}
+${fitnessScore === 0 ? '• Нет тренировок' : ''}
+${fitnessScore > 0 && fitnessScore < 40 ? '• Мало активности' : ''}
+${fitnessScore >= 40 && fitnessScore < 70 ? '• Средняя активность' : ''}
+${fitnessScore >= 70 ? '• Отличная активность' : ''}
+
+💰 ФИНАНСЫ: ${financeScore}/100
+• Доходы: ${totalIncome.toLocaleString()}₽
+• Расходы: ${totalExpenses.toLocaleString()}₽
+${financeScore < 50 ? '• Расходы близки к доходам' : ''}
+${financeScore >= 50 && financeScore < 70 ? '• Нормальные накопления' : ''}
+${financeScore >= 70 ? '• Отличные накопления' : ''}
+
+🎯 ЦЕЛИ: ${goalsScore}/100
+• Активных: ${userData.goals?.filter((g: any) => !g.completed).length || 0}
+• Выполнено: ${userData.goals?.filter((g: any) => g.completed).length || 0}
+${goalsScore === 0 ? '• Нет целей или прогресса' : ''}
+${goalsScore > 0 && goalsScore < 50 ? '• Движение медленное' : ''}
+${goalsScore >= 50 ? '• Хороший прогресс' : ''}
+
+🔴 ГЛАВНЫЕ ПРОБЛЕМЫ:
+${nutritionScore < 40 ? '1. Питание — критически мало данных\n' : ''}
+${sleepScore < 60 && sleepScore > 0 ? '2. Сон — низкое качество\n' : ''}
+${fitnessScore < 40 ? '3. Фитнес — мало активности\n' : ''}
+${financeScore < 50 ? '4. Финансы — мало откладываете\n' : ''}
+${goalsScore === 0 ? '5. Цели — нет движения\n' : ''}
 `;
     }
   }
   
   return `${userDataContext}
 
-Вопрос пользователя: ${message}
+ВОПРОС ПОЛЬЗОВАТЕЛЯ: ${message}
 
-Ответ:`;
+ОТВЕТ (2-4 предложения, конкретно, с цифрами):`;
 }
 
 // Очистка ответа

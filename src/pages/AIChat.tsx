@@ -48,19 +48,17 @@ export function AIChat() {
     setIsTyping(true);
 
     try {
-      // Собираем все данные пользователя
-      const userData = {
-        meals: state.meals,
-        sleepDays: state.sleepDays,
-        workouts: state.workouts,
-        transactions: state.transactions,
-        goals: state.goals,
-        profile: state.profile,
-      };
-
+      // Передаём ВСЕ данные пользователя в AI
       const response = await sendMessage(text, {
         type: 'analysis',
-        userData,
+        userData: {
+          meals: state.meals,
+          sleepDays: state.sleepDays,
+          workouts: state.workouts,
+          transactions: state.transactions,
+          goals: state.goals,
+          profile: state.profile,
+        },
       });
 
       setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
