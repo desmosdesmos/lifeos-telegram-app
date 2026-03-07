@@ -9,6 +9,7 @@ import { Profile } from './pages/Profile';
 import { Fitness } from './pages/Fitness';
 import { Finances } from './pages/Finances';
 import { Goals } from './pages/Goals';
+import { Statistics } from './pages/Statistics';
 
 export const router = createBrowserRouter([
   {
@@ -33,6 +34,7 @@ export const router = createBrowserRouter([
       { path: 'analysis', Component: AIAnalysis },
       { path: 'chat', Component: AIChat },
       { path: 'profile', Component: Profile },
+      { path: 'statistics', Component: Statistics },
     ],
   },
 ]);

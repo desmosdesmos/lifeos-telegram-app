@@ -137,6 +137,13 @@ export function Dashboard() {
             </div>
             <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
           </button>
+          <button onClick={() => navigate('/statistics')} className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-[12px] bg-[#F59E0B]/15 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-[#F59E0B]" /></div>
+              <span className="text-sm">Статистика и графики</span>
+            </div>
+            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+          </button>
         </div>
       </motion.div>
     </div>
