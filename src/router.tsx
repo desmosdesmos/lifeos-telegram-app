@@ -19,12 +19,7 @@ export const router = createBrowserRouter([
         <div className="text-center">
           <h1 className="text-2xl text-white mb-2">Упс! Что-то пошло не так</h1>
           <p className="text-white/60 mb-4">Попробуйте обновить страницу</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="px-6 py-3 bg-[#4DA3FF] rounded-xl text-white font-medium"
-          >
-            Обновить
-          </button>
+          <button onClick={() => window.location.reload()} className="px-6 py-3 bg-[#4DA3FF] rounded-xl text-white font-medium">Обновить</button>
         </div>
       </div>
     ),
