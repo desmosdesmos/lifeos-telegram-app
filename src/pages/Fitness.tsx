@@ -1,110 +1,166 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Dumbbell, Play, Calendar, Flame, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+
+const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+const workoutTemplates = [
+  { name: 'Грудь + Трицепс', exercises: 8, duration: 60, calories: 350 },
+  { name: 'Спина + Бицепс', exercises: 9, duration: 65, calories: 380 },
+  { name: 'Ноги + Плечи', exercises: 10, duration: 75, calories: 450 },
+  { name: 'Кардио', exercises: 5, duration: 45, calories: 400 },
+  { name: 'Full Body', exercises: 12, duration: 70, calories: 420 },
+];
 
 export function Fitness() {
   const navigate = useNavigate();
   const { state, addWorkout, removeWorkout } = useApp();
   const [showAddWorkout, setShowAddWorkout] = useState(false);
+  const [showTimer, setShowTimer] = useState(false);
+  const [showWeekPlan, setShowWeekPlan] = useState(false);
+  const [timerActive, setTimerActive] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+
+  // Timer logic
+  useEffect(() => {
+    let interval: ReturnType<typeof setInterval>;
+    if (timerActive) {
+      interval = setInterval(() => {
+        setTimerSeconds(s => s + 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timerActive]);
 
   const completedWorkouts = state.workouts.filter(w => w.completed);
   const fitnessScore = Math.min(100, completedWorkouts.length * 20);
+  const totalCaloriesBurned = completedWorkouts.reduce((sum, w) => sum + w.calories, 0);
 
-  const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
-  const today = new Date().getDay();
+  // Weekly plan state
+  const [weeklyPlan, setWeeklyPlan] = useState<Record<number, string>>({});
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-3xl">Фитнес</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddWorkout(true)} className="w-11 h-11 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
-          <Plus className="w-5 h-5" />
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowTimer(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#F59E0B]">
+            <Timer className="w-5 h-5" />
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddWorkout(true)} className="w-10 h-10 rounded-[14px] bg-[#F59E0B] flex items-center justify-center text-white">
+            <Plus className="w-5 h-5" />
+          </motion.button>
+        </div>
       </motion.div>
 
-      {/* Fitness Score */}
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card rounded-[24px] p-6 mb-6">
-        <p className="text-white/60 text-sm mb-2">Активность</p>
-        <div className="flex items-end gap-2">
-          <span className="text-5xl tracking-tight">{fitnessScore}</span>
-          <span className="text-2xl text-white/40 mb-1">/ 100</span>
+      {/* AI Trainer */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4 mb-6 bg-gradient-to-r from-[#F59E0B]/10 to-[#EF4444]/5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-[12px] bg-[#F59E0B]/20 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-[#F59E0B]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">AI Тренер</h3>
+            <p className="text-xs text-white/50">Персональные тренировки</p>
+          </div>
         </div>
-        <p className="text-white/50 text-xs mt-2">{completedWorkouts.length} тренировок выполнено</p>
+        <AITrainer workouts={state.workouts} />
       </motion.div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-[20px] p-4 text-center">
+          <Flame className="w-6 h-6 text-[#F59E0B] mx-auto mb-2" />
+          <p className="text-white/50 text-xs mb-1">Ккал</p>
+          <p className="text-lg font-bold">{totalCaloriesBurned}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="glass-card rounded-[20px] p-4 text-center">
+          <CheckCircle className="w-6 h-6 text-[#22C55E] mx-auto mb-2" />
+          <p className="text-white/50 text-xs mb-1">Тренировки</p>
+          <p className="text-lg font-bold">{completedWorkouts.length}</p>
+        </motion.div>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-[20px] p-4 text-center">
+          <BarChart3 className="w-6 h-6 text-[#4DA3FF] mx-auto mb-2" />
+          <p className="text-white/50 text-xs mb-1">Активность</p>
+          <p className="text-lg font-bold">{fitnessScore}%</p>
+        </motion.div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} onClick={() => setShowTimer(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+          <div className="w-10 h-10 rounded-[10px] bg-[#F59E0B]/20 flex items-center justify-center">
+            <Timer className="w-5 h-5 text-[#F59E0B]" />
+          </div>
+          <span className="text-xs">Таймер</span>
+        </motion.button>
+
+        <motion.button initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} onClick={() => setShowWeekPlan(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+          <div className="w-10 h-10 rounded-[10px] bg-[#4DA3FF]/20 flex items-center justify-center">
+            <Calendar className="w-5 h-5 text-[#4DA3FF]" />
+          </div>
+          <span className="text-xs">План</span>
+        </motion.button>
+
+        <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} onClick={() => setShowAddWorkout(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+          <div className="w-10 h-10 rounded-[10px] bg-[#22C55E]/20 flex items-center justify-center">
+            <Plus className="w-5 h-5 text-[#22C55E]" />
+          </div>
+          <span className="text-xs">Добавить</span>
+        </motion.button>
+      </div>
 
       {/* Weekly Overview */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-[24px] p-6 mb-6">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-[24px] p-5 mb-6">
         <h3 className="text-lg mb-4">Эта неделя</h3>
         <div className="flex justify-between">
           {weekDays.map((day, index) => {
-            const isToday = index === (today === 0 ? 6 : today - 1);
-            const workout = completedWorkouts.find(w => {
+            const hasWorkout = completedWorkouts.some(w => {
               const wDate = new Date(w.date);
-              return wDate.getDay() - 1 === index;
+              const dayOfWeek = wDate.getDay();
+              return dayOfWeek === 0 ? index === 6 : dayOfWeek - 1 === index;
             });
+            const isToday = index === (new Date().getDay() === 0 ? 6 : new Date().getDay() - 1);
             return (
               <div key={day} className="flex flex-col items-center gap-2">
                 <span className={`text-xs ${isToday ? 'text-white font-bold' : 'text-white/30'}`}>{day}</span>
-                <div className={`w-8 h-12 rounded-full flex items-center justify-center ${workout ? 'bg-gradient-to-t from-[#F59E0B] to-[#F59E0B]/60' : 'bg-white/5'}`}>
-                  {workout && <Flame className="w-4 h-4 text-white" />}
+                <div className={`w-9 h-14 rounded-full flex items-center justify-center ${hasWorkout ? 'bg-gradient-to-t from-[#F59E0B] to-[#F59E0B]/60' : 'bg-white/5'}`}>
+                  {hasWorkout ? <Flame className="w-4 h-4 text-white" /> : <span className="text-white/20">-</span>}
                 </div>
-                <span className="text-xs text-white/40">{workout ? workout.calories : '-'}</span>
               </div>
             );
           })}
         </div>
-        <div className="mt-4 pt-4 border-t border-white/10 flex justify-between text-sm">
-          <span className="text-white/50">Тренировок</span>
-          <span className="text-white">{completedWorkouts.length}</span>
-        </div>
       </motion.div>
-
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 gap-3 mb-6">
-        <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} onClick={() => setShowAddWorkout(true)} className="glass-card rounded-[20px] p-4 flex flex-col items-center gap-3 active:scale-95 transition-transform">
-          <div className="w-12 h-12 rounded-[16px] bg-[#4DA3FF]/20 flex items-center justify-center">
-            <Play className="w-6 h-6 text-[#4DA3FF]" />
-          </div>
-          <span className="text-sm font-medium">Начать тренировку</span>
-        </motion.button>
-        <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-[20px] p-4 flex flex-col items-center gap-3 active:scale-95 transition-transform">
-          <div className="w-12 h-12 rounded-[16px] bg-[#22C55E]/20 flex items-center justify-center">
-            <Calendar className="w-6 h-6 text-[#22C55E]" />
-          </div>
-          <span className="text-sm font-medium">План на неделю</span>
-        </motion.button>
-      </div>
 
       {/* Workouts History */}
       <div className="space-y-3 mb-6">
         <div className="flex items-center justify-between px-1">
           <p className="text-white/60 text-sm">История тренировок</p>
-          <button onClick={() => setShowAddWorkout(true)} className="text-[#4DA3FF] text-sm flex items-center gap-1">
+          <button onClick={() => setShowAddWorkout(true)} className="text-[#F59E0B] text-sm flex items-center gap-1">
             <Plus className="w-4 h-4" /> Добавить
           </button>
         </div>
 
         {state.workouts.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card rounded-[20px] p-8 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card rounded-[24px] p-8 text-center">
             <div className="w-16 h-16 rounded-[20px] bg-[#F59E0B]/20 flex items-center justify-center mx-auto mb-4">
               <Dumbbell className="w-8 h-8 text-[#F59E0B]" />
             </div>
-            <p className="text-white/70 mb-2">Нет записей о тренировках</p>
-            <button onClick={() => setShowAddWorkout(true)} className="px-6 py-3 bg-[#F59E0B] rounded-[16px] text-white font-medium">
-              Добавить тренировку
-            </button>
+            <h3 className="text-xl font-bold mb-2">Нет записей о тренировках</h3>
+            <p className="text-white/60 text-sm mb-4">Добавьте первую тренировку</p>
+            <button onClick={() => setShowAddWorkout(true)} className="px-6 py-3 bg-[#F59E0B] rounded-[16px] text-white font-medium">Добавить тренировку</button>
           </motion.div>
         ) : (
-          state.workouts.map((workout, index) => (
-            <motion.div key={workout.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + index * 0.05 }} className={`glass-card rounded-[20px] p-5 ${!workout.completed ? 'opacity-60' : ''}`}>
+          state.workouts.slice().reverse().map((workout, index) => (
+            <motion.div key={workout.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 + index * 0.05 }} className={`glass-card rounded-[20px] p-4 ${!workout.completed ? 'opacity-60' : ''}`}>
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-[12px] bg-[#F59E0B]/20 flex items-center justify-center">
@@ -126,8 +182,8 @@ export function Fitness() {
                 </div>
               </div>
               <div className="flex items-center gap-4 text-xs text-white/50">
-                <span className="flex items-center gap-1"><Play className="w-3 h-3" /> {workout.duration} мин</span>
-                <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" /> {workout.exercises} упражнений</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> {workout.duration} мин</span>
+                <span className="flex items-center gap-1"><Dumbbell className="w-3 h-3" /> {workout.exercises} упр.</span>
                 <span className={`px-2 py-0.5 rounded-full text-[10px] ${workout.completed ? 'bg-[#22C55E]/20 text-[#22C55E]' : 'bg-white/10 text-white/40'}`}>
                   {workout.completed ? 'Выполнено' : 'Запланировано'}
                 </span>
@@ -137,25 +193,141 @@ export function Fitness() {
         )}
       </div>
 
-      {/* Add Workout Modal */}
+      {/* Modals */}
       <AnimatePresence>
-        {showAddWorkout && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddWorkout(false)}>
-            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-10">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl">Добавить тренировку</h2>
-                <button onClick={() => setShowAddWorkout(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
-              </div>
-              <AddWorkoutForm onAdd={(w) => { addWorkout(w); setShowAddWorkout(false); }} onCancel={() => setShowAddWorkout(false)} />
-            </motion.div>
-          </motion.div>
-        )}
+        {showAddWorkout && <AddWorkoutModal onClose={() => setShowAddWorkout(false)} onAdd={addWorkout} />}
+        {showTimer && <TimerModal onClose={() => setShowTimer(false)} time={timerSeconds} active={timerActive} setActive={setTimerActive} setTime={setTimerSeconds} onAddWorkout={addWorkout} />}
+        {showWeekPlan && <WeekPlanModal onClose={() => setShowWeekPlan(false)} plan={weeklyPlan} setPlan={setWeeklyPlan} />}
       </AnimatePresence>
     </div>
   );
 }
 
-function AddWorkoutForm({ onAdd, onCancel }: { onAdd: (w: any) => void; onCancel: () => void }) {
+function AITrainer({ workouts }: { workouts: any[] }) {
+  const completed = workouts.filter(w => w.completed).length;
+  
+  const getAdvice = () => {
+    if (workouts.length === 0) {
+      return 'Добавьте первую тренировку для получения рекомендаций.';
+    }
+    if (completed >= 3) {
+      return 'Отличная работа! Вы выполнили достаточно тренировок на этой неделе. Не забывайте про восстановление.';
+    }
+    if (completed >= 1) {
+      return 'Хороший прогресс! Добавьте ещё 1-2 тренировки для оптимального результата.';
+    }
+    return 'Начните с 3 тренировок в неделю: грудь+трицепс, спина+бицепс, ноги+плечи.';
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-white/80">{getAdvice()}</p>
+      {completed === 0 && workouts.length > 0 && (
+        <p className="text-xs text-[#F59E0B]">⚠️ Запланированы тренировки, но ещё не выполнены</p>
+      )}
+    </div>
+  );
+}
+
+function TimerModal({ onClose, time, active, setActive, setTime, onAddWorkout }: { onClose: () => void; time: number; active: boolean; setActive: (v: boolean) => void; setTime: (v: number) => void; onAddWorkout: (w: any) => void }) {
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleFinish = () => {
+    const now = new Date();
+    onAddWorkout({
+      name: `Тренировка ${now.toLocaleDateString()}`,
+      duration: Math.floor(time / 60),
+      exercises: 8,
+      calories: Math.floor(time / 60 * 6),
+      date: now.toISOString().split('T')[0],
+      completed: true,
+    });
+    setActive(false);
+    setTime(0);
+    onClose();
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-[32px] w-full max-w-sm p-8 text-center">
+        <h2 className="text-2xl font-bold mb-6">Таймер тренировки</h2>
+        
+        <div className="text-7xl font-mono font-bold mb-8">{formatTime(time)}</div>
+        
+        <div className="flex gap-3 mb-6">
+          <button onClick={() => setActive(!active)} className={`flex-1 py-4 rounded-[20px] font-bold text-lg ${active ? 'bg-[#EF4444]' : 'bg-[#22C55E]'} text-white`}>
+            {active ? 'Пауза' : 'Старт'}
+          </button>
+          <button onClick={() => { setActive(false); setTime(0); }} className="py-4 px-6 glass-card rounded-[20px] text-white font-bold">
+            Сброс
+          </button>
+        </div>
+        
+        {time > 60 && (
+          <button onClick={handleFinish} className="w-full py-4 bg-[#F59E0B] rounded-[20px] text-white font-bold">
+            Завершить и сохранить
+          </button>
+        )}
+        
+        <button onClick={onClose} className="w-full py-3 mt-3 glass-card rounded-[20px] text-white/70">
+          Закрыть
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function WeekPlanModal({ onClose, plan, setPlan }: { onClose: () => void; plan: Record<number, string>; setPlan: (v: Record<number, string>) => void }) {
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+
+  const handleSelectWorkout = (workout: any) => {
+    if (selectedDay !== null) {
+      setPlan({ ...plan, [selectedDay]: workout.name });
+      setSelectedDay(null);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl">План на неделю</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
+        </div>
+
+        <div className="space-y-3 mb-6">
+          {weekDays.map((day, index) => (
+            <button key={day} onClick={() => setSelectedDay(index)} className="w-full glass-card rounded-[16px] p-4 flex items-center justify-between hover:bg-white/10 transition-colors">
+              <span className="text-white/90 font-medium">{day}</span>
+              <span className="text-white/60 text-sm">{plan[index] || 'Нет тренировки'}</span>
+            </button>
+          ))}
+        </div>
+
+        {selectedDay !== null && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4 mb-4">
+            <h3 className="text-lg mb-3">Выберите тренировку для {weekDays[selectedDay]}</h3>
+            <div className="space-y-2">
+              {workoutTemplates.map((workout, i) => (
+                <button key={i} onClick={() => handleSelectWorkout(workout)} className="w-full glass-card rounded-[12px] p-3 flex items-center justify-between hover:bg-white/10 transition-colors">
+                  <span className="text-white/90">{workout.name}</span>
+                  <span className="text-white/40 text-xs">{workout.duration} мин</span>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => setSelectedDay(null)} className="w-full py-3 mt-3 glass-card rounded-[16px] text-white/70">Отмена</button>
+          </motion.div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: any) => void }) {
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
   const [exercises, setExercises] = useState('');
@@ -171,32 +343,41 @@ function AddWorkoutForm({ onAdd, onCancel }: { onAdd: (w: any) => void; onCancel
       date: new Date().toISOString().split('T')[0],
       completed: true,
     });
+    onClose();
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <label className="text-white/60 text-sm mb-2 block">Название</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Грудь + Трицепс" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="text-white/60 text-sm mb-2 block">Длительность (мин)</label>
-          <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="60" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl">Добавить тренировку</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
-        <div>
-          <label className="text-white/60 text-sm mb-2 block">Ккал</label>
-          <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="300" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+        <div className="space-y-4">
+          <div>
+            <label className="text-white/60 text-sm mb-2 block">Название</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Грудь + Трицепс" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-white/60 text-sm mb-2 block">Длительность (мин)</label>
+              <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="60" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+            </div>
+            <div>
+              <label className="text-white/60 text-sm mb-2 block">Ккал</label>
+              <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="350" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+            </div>
+          </div>
+          <div>
+            <label className="text-white/60 text-sm mb-2 block">Упражнений</label>
+            <input type="number" value={exercises} onChange={(e) => setExercises(e.target.value)} placeholder="8" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button onClick={onClose} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
+            <button onClick={handleSubmit} className="flex-1 py-4 bg-[#F59E0B] rounded-[20px] text-white font-medium">Добавить</button>
+          </div>
         </div>
-      </div>
-      <div>
-        <label className="text-white/60 text-sm mb-2 block">Упражнений</label>
-        <input type="number" value={exercises} onChange={(e) => setExercises(e.target.value)} placeholder="8" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
-      </div>
-      <div className="flex gap-3 pt-4">
-        <button onClick={onCancel} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
-        <button onClick={handleSubmit} className="flex-1 py-4 bg-[#F59E0B] rounded-[20px] text-white font-medium">Добавить</button>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2 } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -23,18 +23,32 @@ export function Finances() {
   }).filter(c => c.amount > 0);
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-3xl">Финансы</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAdd(true)} className="w-11 h-11 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-[14px] bg-[#22C55E] flex items-center justify-center text-white">
           <Plus className="w-5 h-5" />
         </motion.button>
+      </motion.div>
+
+      {/* AI Financial Advisor */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4 mb-6 bg-gradient-to-r from-[#22C55E]/10 to-[#4DA3FF]/5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-[12px] bg-[#22C55E]/20 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-[#22C55E]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">AI Финансист</h3>
+            <p className="text-xs text-white/50">Умные советы по бюджету</p>
+          </div>
+        </div>
+        <AIFinancialAdvisor income={income} expenses={expenses} savings={savings} savingsRate={savingsRate} transactions={state.transactions} />
       </motion.div>
 
       {/* Finance Score */}
@@ -44,6 +58,7 @@ export function Finances() {
           <span className="text-5xl tracking-tight">{financeScore}</span>
           <span className="text-2xl text-white/40 mb-1">/ 100</span>
         </div>
+        <p className="text-white/50 text-xs mt-2">{financeScore >= 70 ? 'Отлично' : financeScore >= 50 ? 'Хорошо' : 'Нужно улучшить'}</p>
       </motion.div>
 
       {/* Summary */}
@@ -66,7 +81,7 @@ export function Finances() {
       </div>
 
       {/* Savings Progress */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card rounded-[24px] p-6 mb-6 bg-gradient-to-br from-[#22C55E]/10 to-[#4DA3FF]/5">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="glass-card rounded-[24px] p-5 mb-6 bg-gradient-to-br from-[#22C55E]/10 to-[#4DA3FF]/5">
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-white/60 text-sm">Откладываем</p>
@@ -87,7 +102,7 @@ export function Finances() {
         <div className="space-y-3 mb-6">
           <p className="text-white/60 text-sm px-1">Категории расходов</p>
           {expensesByCategory.map((cat, index) => (
-            <motion.div key={cat.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + index * 0.05 }} className="glass-card rounded-[20px] p-5">
+            <motion.div key={cat.name} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 + index * 0.05 }} className="glass-card rounded-[20px] p-4">
               <div className="flex items-center justify-between mb-3">
                 <span className="text-white/90">{cat.name}</span>
                 <span className="text-white/60 text-sm">{cat.amount.toLocaleString()} ₽</span>
@@ -104,23 +119,22 @@ export function Finances() {
       <div className="space-y-3 mb-6">
         <div className="flex items-center justify-between px-1">
           <p className="text-white/60 text-sm">Операции</p>
-          <button onClick={() => setShowAdd(true)} className="text-[#4DA3FF] text-sm flex items-center gap-1">
+          <button onClick={() => setShowAdd(true)} className="text-[#22C55E] text-sm flex items-center gap-1">
             <Plus className="w-4 h-4" /> Добавить
           </button>
         </div>
 
         {state.transactions.length === 0 ? (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card rounded-[20px] p-8 text-center">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card rounded-[24px] p-8 text-center">
             <div className="w-16 h-16 rounded-[20px] bg-[#22C55E]/20 flex items-center justify-center mx-auto mb-4">
-              <PiggyBank className="w-8 h-8 text-[#22C55E]" />
+              <Wallet className="w-8 h-8 text-[#22C55E]" />
             </div>
-            <p className="text-white/70 mb-2">Нет записей о финансах</p>
-            <button onClick={() => setShowAdd(true)} className="px-6 py-3 bg-[#22C55E] rounded-[16px] text-white font-medium">
-              Добавить операцию
-            </button>
+            <h3 className="text-xl font-bold mb-2">Нет записей о финансах</h3>
+            <p className="text-white/60 text-sm mb-4">Добавьте первую операцию</p>
+            <button onClick={() => setShowAdd(true)} className="px-6 py-3 bg-[#22C55E] rounded-[16px] text-white font-medium">Добавить операцию</button>
           </motion.div>
         ) : (
-          state.transactions.slice(0, 10).map((t, index) => (
+          state.transactions.slice().reverse().slice(0, 10).map((t, index) => (
             <motion.div key={t.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + index * 0.05 }} className="glass-card rounded-[20px] p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${t.type === 'income' ? 'bg-[#22C55E]/20' : 'bg-[#EF4444]/20'}`}>
@@ -146,18 +160,35 @@ export function Finances() {
 
       {/* Add Modal */}
       <AnimatePresence>
-        {showAdd && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAdd(false)}>
-            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-10">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl">Добавить операцию</h2>
-                <button onClick={() => setShowAdd(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
-              </div>
-              <AddTransactionForm onAdd={(t) => { addTransaction(t); setShowAdd(false); }} onCancel={() => setShowAdd(false)} />
-            </motion.div>
-          </motion.div>
-        )}
+        {showAdd && <AddTransactionModal onClose={() => setShowAdd(false)} onAdd={addTransaction} />}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function AIFinancialAdvisor({ savings, savingsRate, transactions }: any) {
+  const getAdvice = () => {
+    if (transactions.length === 0) {
+      return 'Добавьте данные о финансах для получения рекомендаций.';
+    }
+    if (savingsRate >= 50) {
+      return 'Отлично! Вы откладываете больше половины дохода. Рассмотрите инвестиционные инструменты.';
+    }
+    if (savingsRate >= 30) {
+      return 'Хороший результат! Попробуйте увеличить накопления до 50%.';
+    }
+    if (savings < 0) {
+      return '⚠️ Расходы превышают доходы! Пересмотрите бюджет и сократите траты.';
+    }
+    return 'Стремитесь откладывать минимум 30% дохода для финансовой стабильности.';
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-white/80">{getAdvice()}</p>
+      {savings < 0 && (
+        <p className="text-xs text-[#EF4444]">⚠️ Отрицательный баланс! Нужно сократить расходы.</p>
+      )}
     </div>
   );
 }
@@ -167,7 +198,7 @@ function getCategoryColor(cat: string): string {
   return colors[cat] || '#888888';
 }
 
-function AddTransactionForm({ onAdd, onCancel }: { onAdd: (t: any) => void; onCancel: () => void }) {
+function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: any) => void }) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -176,32 +207,41 @@ function AddTransactionForm({ onAdd, onCancel }: { onAdd: (t: any) => void; onCa
   const handleSubmit = () => {
     if (!name || !amount) return;
     onAdd({ name, amount: Number(amount), type, category, date: new Date().toISOString().split('T')[0] });
+    onClose();
   };
 
   return (
-    <div className="space-y-4">
-      <div className="flex gap-3 mb-4">
-        <button onClick={() => setType('expense')} className={`flex-1 py-3 rounded-[16px] font-medium ${type === 'expense' ? 'bg-[#EF4444] text-white' : 'glass-card'}`}>Расход</button>
-        <button onClick={() => setType('income')} className={`flex-1 py-3 rounded-[16px] font-medium ${type === 'income' ? 'bg-[#22C55E] text-white' : 'glass-card'}`}>Доход</button>
-      </div>
-      <div>
-        <label className="text-white/60 text-sm mb-2 block">Название</label>
-        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Супермаркет" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-      </div>
-      <div>
-        <label className="text-white/60 text-sm mb-2 block">Сумма (₽)</label>
-        <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-      </div>
-      <div>
-        <label className="text-white/60 text-sm mb-2 block">Категория</label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]">
-          {categories.map(c => <option key={c} value={c}>{c}</option>)}
-        </select>
-      </div>
-      <div className="flex gap-3 pt-4">
-        <button onClick={onCancel} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
-        <button onClick={handleSubmit} className={`flex-1 py-4 rounded-[20px] text-white font-medium ${type === 'income' ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}`}>Добавить</button>
-      </div>
-    </div>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl">Добавить операцию</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
+        </div>
+        <div className="space-y-4">
+          <div className="flex gap-3 mb-4">
+            <button onClick={() => setType('expense')} className={`flex-1 py-3 rounded-[16px] font-medium ${type === 'expense' ? 'bg-[#EF4444] text-white' : 'glass-card'}`}>Расход</button>
+            <button onClick={() => setType('income')} className={`flex-1 py-3 rounded-[16px] font-medium ${type === 'income' ? 'bg-[#22C55E] text-white' : 'glass-card'}`}>Доход</button>
+          </div>
+          <div>
+            <label className="text-white/60 text-sm mb-2 block">Название</label>
+            <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Например: Супермаркет" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+          </div>
+          <div>
+            <label className="text-white/60 text-sm mb-2 block">Сумма (₽)</label>
+            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+          </div>
+          <div>
+            <label className="text-white/60 text-sm mb-2 block">Категория</label>
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]">
+              {categories.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-3 pt-4">
+            <button onClick={onClose} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
+            <button onClick={handleSubmit} className={`flex-1 py-4 rounded-[20px] text-white font-medium ${type === 'income' ? 'bg-[#22C55E]' : 'bg-[#EF4444]'}`}>Добавить</button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
   );
 }

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Target, Plus, Calendar, Trophy, Trash2, Edit2 } from 'lucide-react';
+import { ChevronLeft, Target, Plus, Calendar, Trophy, Trash2, Edit2, Brain } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
@@ -35,18 +35,32 @@ export function Goals() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
             <ChevronLeft className="w-5 h-5" />
           </button>
           <h1 className="text-3xl">Цели</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddGoal(true)} className="w-11 h-11 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
+        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddGoal(true)} className="w-10 h-10 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
           <Plus className="w-5 h-5" />
         </motion.button>
+      </motion.div>
+
+      {/* AI Coach */}
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4 mb-6 bg-gradient-to-r from-[#4DA3FF]/10 to-[#22C55E]/5">
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-10 h-10 rounded-[12px] bg-[#4DA3FF]/20 flex items-center justify-center">
+            <Brain className="w-5 h-5 text-[#4DA3FF]" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold">AI Коуч</h3>
+            <p className="text-xs text-white/50">Мотивация и стратегии</p>
+          </div>
+        </div>
+        <AICoach goals={state.goals} />
       </motion.div>
 
       {/* Progress Summary */}
@@ -127,7 +141,7 @@ export function Goals() {
               <AnimatePresence>
                 {editingId === goal.id && (
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setEditingId(null)}>
-                    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-10">
+                    <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
                       <div className="flex items-center justify-between mb-6">
                         <h2 className="text-2xl">Редактировать цель</h2>
                         <button onClick={() => setEditingId(null)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -172,7 +186,7 @@ export function Goals() {
       <AnimatePresence>
         {showAddGoal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowAddGoal(false)}>
-            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-10 max-h-[90vh] overflow-y-auto">
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl">Новая цель</h2>
                 <button onClick={() => setShowAddGoal(false)} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -182,6 +196,39 @@ export function Goals() {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function AICoach({ goals }: { goals: any[] }) {
+  const completed = goals.filter(g => g.completed).length;
+  const active = goals.filter(g => !g.completed);
+  
+  const getAdvice = () => {
+    if (goals.length === 0) {
+      return 'Поставьте первую цель! Начните с маленькой — это поможет сформировать привычку достижения.';
+    }
+    if (active.length > 5) {
+      return '⚠️ Слишком много активных целей! Сфокусируйтесь на 3-5 самых важных.';
+    }
+    if (completed > 0 && active.length === 0) {
+      return 'Поздравляю! Вы выполнили все цели. Время поставить новые!';
+    }
+    if (active.some(g => g.progress === 0)) {
+      return 'Есть цели без прогресса. Начните с маленьких шагов — главное начать!';
+    }
+    return 'Продолжайте в том же духе! Регулярность важнее интенсивности.';
+  };
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-white/80">{getAdvice()}</p>
+      {active.length > 0 && (
+        <div className="mt-2">
+          <p className="text-xs text-white/60 mb-1">💡 Совет для текущих целей:</p>
+          <p className="text-xs text-white/70">Разбейте большую цель "{active[0]?.title}" на маленькие шаги и выполняйте по одному в день.</p>
+        </div>
+      )}
     </div>
   );
 }
