@@ -22,7 +22,7 @@ export function Nutrition() {
   const totalCarbs = state.meals.reduce((sum, m) => sum + m.carbs, 0);
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-40 overflow-y-auto">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -35,10 +35,10 @@ export function Nutrition() {
           <motion.button 
             whileTap={{ scale: 0.95 }} 
             onClick={() => setShowChat(true)} 
-            className="px-4 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[16px] text-white font-bold flex items-center gap-2 shadow-lg shadow-[#4DA3FF]/30"
+            className="px-3 py-2 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[12px] text-white font-bold flex items-center gap-1.5 shadow-lg shadow-[#4DA3FF]/30"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span className="text-sm">AI-консультант</span>
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs">AI</span>
           </motion.button>
         </div>
         <div className="flex items-center gap-2">

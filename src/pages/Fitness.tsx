@@ -58,10 +58,10 @@ export function Fitness() {
           <motion.button 
             whileTap={{ scale: 0.95 }} 
             onClick={() => setShowChat(true)} 
-            className="px-4 py-3 bg-gradient-to-r from-[#F59E0B] to-[#EF4444] rounded-[16px] text-white font-bold flex items-center gap-2 shadow-lg shadow-[#F59E0B]/30"
+            className="px-3 py-2 bg-gradient-to-r from-[#F59E0B] to-[#EF4444] rounded-[12px] text-white font-bold flex items-center gap-1.5 shadow-lg shadow-[#F59E0B]/30"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span className="text-sm">AI-тренер</span>
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs">AI</span>
           </motion.button>
         </div>
         <div className="flex items-center gap-2">
@@ -414,7 +414,7 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
   );
 }
 
-function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: any }) {
+function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
 

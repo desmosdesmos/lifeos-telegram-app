@@ -46,10 +46,10 @@ export function Finances() {
           <motion.button 
             whileTap={{ scale: 0.95 }} 
             onClick={() => setShowChat(true)} 
-            className="px-4 py-3 bg-gradient-to-r from-[#22C55E] to-[#4DA3FF] rounded-[16px] text-white font-bold flex items-center gap-2 shadow-lg shadow-[#22C55E]/30"
+            className="px-3 py-2 bg-gradient-to-r from-[#22C55E] to-[#4DA3FF] rounded-[12px] text-white font-bold flex items-center gap-1.5 shadow-lg shadow-[#22C55E]/30"
           >
-            <MessageCircle className="w-5 h-5" />
-            <span className="text-sm">AI-финансист</span>
+            <MessageCircle className="w-4 h-4" />
+            <span className="text-xs">AI</span>
           </motion.button>
         </div>
         {/* Month Selector */}
