@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
 import { bjuGuide } from '../utils/macroCalculator';
@@ -274,14 +274,56 @@ function AddMealModal({ onClose }: { onClose: () => void }) {
 
 function ScannerModal({ onClose }: { onClose: () => void }) {
   const [barcode, setBarcode] = useState('');
+  const [error, setError] = useState('');
+  const [hasPermission, setHasPermission] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment' } 
+      });
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+        setStream(mediaStream);
+        setHasPermission(true);
+        setError('');
+      }
+    } catch (err) {
+      console.error('Camera error:', err);
+      setError('Нет доступа к камере. Разрешите доступ или введите код вручную.');
+      setHasPermission(false);
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+  };
+
+  // Start camera on mount
+  useEffect(() => {
+    startCamera();
+    return () => stopCamera();
+  }, []);
+
+  const handleManualEntry = () => {
+    if (barcode.trim()) {
+      // Здесь будет логика поиска по базе штрихкодов
+      alert(`Штрихкод ${barcode} распознан! (Функция в разработке)`);
+      onClose();
+    }
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Сканировать штрихкод</h2>
-          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
+          <button onClick={() => { stopCamera(); onClose(); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
         <div className="text-center py-4">
           <div className="w-full h-48 mx-auto mb-4 rounded-[20px] bg-black overflow-hidden relative">
@@ -289,12 +331,23 @@ function ScannerModal({ onClose }: { onClose: () => void }) {
               ref={videoRef}
               autoPlay 
               playsInline
+              muted
               className="w-full h-full object-cover"
             />
+            {!hasPermission && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+                <div className="text-white/70 text-sm">Камера недоступна</div>
+              </div>
+            )}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
               <div className="w-40 h-24 border-2 border-[#22C55E] rounded-lg" />
             </div>
           </div>
+          {error && (
+            <div className="glass-card rounded-[16px] p-3 mb-4 bg-red-500/10 border border-red-500/20">
+              <p className="text-red-400 text-sm">{error}</p>
+            </div>
+          )}
           <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
           <div className="flex gap-2 mb-4">
             <input 
@@ -302,9 +355,10 @@ function ScannerModal({ onClose }: { onClose: () => void }) {
               value={barcode} 
               onChange={(e) => setBarcode(e.target.value)} 
               placeholder="Или введите код" 
-              className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm" 
+              className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm"
+              onKeyDown={(e) => e.key === 'Enter' && handleManualEntry()} 
             />
-            <button className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
+            <button onClick={handleManualEntry} className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
           </div>
           <div className="glass-card rounded-[16px] p-4 text-left">
             <p className="text-xs text-white/50 mb-2">📌 Инструкция:</p>

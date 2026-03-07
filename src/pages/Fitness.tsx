@@ -421,21 +421,28 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        onAdd({
-          date: new Date().toISOString().split('T')[0],
-          photo: reader.result as string,
-          weight: Number(weight) || 0,
-          notes,
-        });
-        setWeight('');
-        setNotes('');
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      };
-      reader.readAsDataURL(file);
+      try {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          onAdd({
+            date: new Date().toISOString().split('T')[0],
+            photo: reader.result as string,
+            weight: Number(weight) || 0,
+            notes,
+          });
+          setWeight('');
+          setNotes('');
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        };
+        reader.onerror = () => {
+          console.error('Error reading file');
+        };
+        reader.readAsDataURL(file);
+      } catch (err) {
+        console.error('File error:', err);
+      }
     }
   };
 

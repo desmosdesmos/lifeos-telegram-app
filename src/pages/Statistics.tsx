@@ -16,16 +16,20 @@ export function Statistics() {
     ...state.sleepDays,
     ...state.workouts,
   ];
-  const availableMonths = getAvailableMonths(allData);
+  const availableMonths = allData.length > 0 ? getAvailableMonths(allData) : [];
   
   // Filter data by selected month
   const filteredSleep = filterByMonth(state.sleepDays, selectedMonth);
   const filteredWorkouts = filterByMonth(state.workouts, selectedMonth);
   const filteredPhotos = filterByMonth(state.progressPhotos, selectedMonth);
   const filteredMeals = state.meals.filter(m => {
-    const mealDate = new Date(m.time);
-    const mealMonth = `${mealDate.getFullYear()}-${String(mealDate.getMonth() + 1).padStart(2, '0')}`;
-    return mealMonth === selectedMonth;
+    try {
+      const mealDate = new Date(m.time);
+      const mealMonth = `${mealDate.getFullYear()}-${String(mealDate.getMonth() + 1).padStart(2, '0')}`;
+      return mealMonth === selectedMonth;
+    } catch {
+      return false;
+    }
   });
 
   // Calculate trends
@@ -66,8 +70,8 @@ export function Statistics() {
   const sleepData = getLast7DaysSleep();
   const workoutData = getLast7DaysWorkouts();
 
-  const maxSleep = sleepData.length > 0 ? Math.max(...sleepData.map(d => d.quality), 100) : 100;
-  const maxWorkoutCalories = workoutData.length > 0 ? Math.max(...workoutData.map(w => w.calories), 100) : 100;
+  const maxSleep = sleepData.length > 0 ? Math.max(...sleepData.map(d => d.quality || 0), 100) : 100;
+  const maxWorkoutCalories = workoutData.length > 0 ? Math.max(...workoutData.map(w => w.calories || 0), 100) : 100;
 
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
