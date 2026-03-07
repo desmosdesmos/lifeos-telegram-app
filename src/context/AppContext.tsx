@@ -42,6 +42,15 @@ interface Workout {
   calories: number;
   date: string;
   completed: boolean;
+  photos?: string[];
+}
+
+interface ProgressPhoto {
+  id: number;
+  date: string;
+  photo: string;
+  weight: number;
+  notes?: string;
 }
 
 interface Transaction {
@@ -70,6 +79,7 @@ interface AppState {
   meals: Meal[];
   sleepDays: SleepDay[];
   workouts: Workout[];
+  progressPhotos: ProgressPhoto[];
   transactions: Transaction[];
   goals: Goal[];
   hasCompletedOnboarding: boolean;
@@ -88,6 +98,7 @@ const defaultState: AppState = {
   meals: [],
   sleepDays: [],
   workouts: [],
+  progressPhotos: [],
   transactions: [],
   goals: [],
   hasCompletedOnboarding: false,
@@ -105,6 +116,8 @@ interface AppContextType {
   addWorkout: (workout: Omit<Workout, 'id'>) => void;
   removeWorkout: (id: number) => void;
   updateWorkout: (id: number, workout: Partial<Workout>) => void;
+  addProgressPhoto: (photo: Omit<ProgressPhoto, 'id'>) => void;
+  removeProgressPhoto: (id: number) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   removeTransaction: (id: number) => void;
   addGoal: (goal: Omit<Goal, 'id'>) => void;
@@ -205,6 +218,20 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addProgressPhoto = (photo: Omit<ProgressPhoto, 'id'>) => {
+    setState(prev => ({
+      ...prev,
+      progressPhotos: [...prev.progressPhotos, { ...photo, id: Date.now() }],
+    }));
+  };
+
+  const removeProgressPhoto = (id: number) => {
+    setState(prev => ({
+      ...prev,
+      progressPhotos: prev.progressPhotos.filter(p => p.id !== id),
+    }));
+  };
+
   const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
     setState(prev => ({
       ...prev,
@@ -262,6 +289,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addWorkout,
       removeWorkout,
       updateWorkout,
+      addProgressPhoto,
+      removeProgressPhoto,
       addTransaction,
       removeTransaction,
       addGoal,

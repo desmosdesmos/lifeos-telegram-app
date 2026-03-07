@@ -4,14 +4,18 @@ import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 
-const goals = ['Набор мышечной массы', 'Похудение', 'Поддержание веса', 'Улучшение здоровья', 'Повышение продуктивности', 'Выносливость'];
+const goals = ['Набор мышечной массы', 'Похудение', 'Поддержание веса', 'Улучшение здоровья', 'Повышение продуктивности', 'Выносливость', 'Сушка'];
 const lifestyles = ['Сидячий', 'Умеренно активный', 'Активный', 'Очень активный'];
+const genders = ['Мужской', 'Женский'];
 
 export function Profile() {
   const navigate = useNavigate();
   const { state, updateProfile, resetAllData } = useApp();
   const [isEditing, setIsEditing] = useState(!state.profile.name);
-  const [editedData, setEditedData] = useState(state.profile);
+  const [editedData, setEditedData] = useState({
+    ...state.profile,
+    gender: state.profile.gender || 'male',
+  });
 
   const handleSave = () => {
     updateProfile(editedData);
@@ -20,6 +24,7 @@ export function Profile() {
 
   const profileFields = [
     { label: 'Имя', value: editedData.name, key: 'name', icon: User, color: '#4DA3FF', type: 'text' as const },
+    { label: 'Пол', value: editedData.gender === 'male' ? 'Мужской' : 'Женский', key: 'gender', icon: User, color: '#4DA3FF', type: 'select' as const, options: genders },
     { label: 'Возраст', value: editedData.age, key: 'age', icon: Zap, color: '#F59E0B', type: 'number' as const, suffix: ' лет' },
     { label: 'Вес', value: editedData.weight, key: 'weight', icon: Weight, color: '#4DA3FF', type: 'number' as const, suffix: ' кг' },
     { label: 'Рост', value: editedData.height, key: 'height', icon: Ruler, color: '#22C55E', type: 'number' as const, suffix: ' см' },
@@ -27,8 +32,22 @@ export function Profile() {
     { label: 'Образ жизни', value: editedData.lifestyle, key: 'lifestyle', icon: Zap, color: '#4DA3FF', type: 'select' as const, options: lifestyles },
   ];
 
+  // Расчёт калорий с учётом цели
+  const getCaloriesForGoal = (baseCalories: number, goal: string) => {
+    switch (goal) {
+      case 'Похудение': return baseCalories - 500;
+      case 'Набор мышечной массы': return baseCalories + 300;
+      case 'Сушка': return baseCalories - 700;
+      case 'Поддержание веса': return baseCalories;
+      default: return baseCalories;
+    }
+  };
+
+  const baseCalories = editedData.weight > 0 && editedData.height > 0 && editedData.age > 0
+    ? Math.round(10 * editedData.weight + 6.25 * editedData.height - 5 * editedData.age + (editedData.gender === 'male' ? 5 : -161))
+    : 0;
+  const calories = getCaloriesForGoal(baseCalories, editedData.goal);
   const bmi = editedData.height > 0 ? Math.round((editedData.weight / ((editedData.height / 100) ** 2)) * 10) / 10 : 0;
-  const calories = editedData.weight > 0 ? Math.round(10 * editedData.weight + 6.25 * editedData.height - 5 * editedData.age + 5) : 0;
 
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">

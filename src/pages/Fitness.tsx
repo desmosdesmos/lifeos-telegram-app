@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain, MessageCircle } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain, MessageCircle, Camera, Image } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 
@@ -16,13 +16,15 @@ const workoutTemplates = [
 
 export function Fitness() {
   const navigate = useNavigate();
-  const { state, addWorkout, removeWorkout } = useApp();
+  const { state, addWorkout, removeWorkout, addProgressPhoto, removeProgressPhoto } = useApp();
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [showWeekPlan, setShowWeekPlan] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showPhotos, setShowPhotos] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Timer logic
   useEffect(() => {
@@ -99,7 +101,7 @@ export function Fitness() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-3 gap-3 mb-6">
+      <div className="grid grid-cols-4 gap-3 mb-6">
         <motion.button initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} onClick={() => setShowTimer(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
           <div className="w-10 h-10 rounded-[10px] bg-[#F59E0B]/20 flex items-center justify-center">
             <Timer className="w-5 h-5 text-[#F59E0B]" />
@@ -112,6 +114,13 @@ export function Fitness() {
             <Calendar className="w-5 h-5 text-[#4DA3FF]" />
           </div>
           <span className="text-xs">План</span>
+        </motion.button>
+
+        <motion.button initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} onClick={() => setShowPhotos(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
+          <div className="w-10 h-10 rounded-[10px] bg-[#22C55E]/20 flex items-center justify-center">
+            <Image className="w-5 h-5 text-[#22C55E]" />
+          </div>
+          <span className="text-xs">Фото</span>
         </motion.button>
 
         <motion.button initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} onClick={() => setShowAddWorkout(true)} className="glass-card rounded-[16px] p-3 flex flex-col items-center gap-2 active:scale-95 transition-transform">
@@ -204,6 +213,7 @@ export function Fitness() {
         {showTimer && <TimerModal onClose={() => setShowTimer(false)} time={timerSeconds} active={timerActive} setActive={setTimerActive} setTime={setTimerSeconds} onAddWorkout={addWorkout} />}
         {showWeekPlan && <WeekPlanModal onClose={() => setShowWeekPlan(false)} plan={weeklyPlan} setPlan={setWeeklyPlan} />}
         {showChat && <AIConsultantChat type="fitness" onClose={() => setShowChat(false)} userData={{ workouts: state.workouts }} />}
+        {showPhotos && <ProgressPhotosModal onClose={() => setShowPhotos(false)} photos={state.progressPhotos} onAdd={addProgressPhoto} onRemove={removeProgressPhoto} fileInputRef={fileInputRef} />}
       </AnimatePresence>
     </div>
   );
@@ -354,7 +364,7 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-32 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Добавить тренировку</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -382,6 +392,79 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
             <button onClick={onClose} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
             <button onClick={handleSubmit} className="flex-1 py-4 bg-[#F59E0B] rounded-[20px] text-white font-medium">Добавить</button>
           </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: any }) {
+  const [weight, setWeight] = useState('');
+  const [notes, setNotes] = useState('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        onAdd({
+          date: new Date().toISOString().split('T')[0],
+          photo: reader.result as string,
+          weight: Number(weight) || 0,
+          notes,
+        });
+        setWeight('');
+        setNotes('');
+        e.target.value = '';
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-32 max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl">Фото прогресса</h2>
+          <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
+        </div>
+
+        {/* Add Photo Section */}
+        <div className="glass-card rounded-[20px] p-4 mb-6">
+          <h3 className="text-lg mb-4">Добавить фото</h3>
+          <input ref={fileInputRef} type="file" accept="image/*" capture="user" onChange={handleFileChange} className="hidden" />
+          <div className="space-y-3">
+            <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-[#22C55E] rounded-[16px] text-white font-medium flex items-center justify-center gap-2">
+              <Camera className="w-5 h-5" />
+              Сделать фото
+            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес (кг)" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+              <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Заметка" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+            </div>
+          </div>
+        </div>
+
+        {/* Photos Grid */}
+        <div className="space-y-4">
+          <h3 className="text-lg">История фото</h3>
+          {photos.length === 0 ? (
+            <p className="text-white/50 text-center py-8">Нет фото. Добавьте первое фото прогресса!</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              {photos.slice().reverse().map((photo) => (
+                <div key={photo.id} className="glass-card rounded-[16px] overflow-hidden">
+                  <img src={photo.photo} alt={photo.date} className="w-full h-48 object-cover" />
+                  <div className="p-3">
+                    <p className="text-sm text-white/90">{photo.date}</p>
+                    {photo.weight > 0 && <p className="text-xs text-white/50">{photo.weight} кг</p>}
+                    {photo.notes && <p className="text-xs text-white/40 mt-1">{photo.notes}</p>}
+                    <button onClick={() => onRemove(photo.id)} className="w-full mt-2 py-2 bg-red-500/20 rounded-[8px] text-red-500 text-xs">Удалить</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </motion.div>
     </motion.div>
