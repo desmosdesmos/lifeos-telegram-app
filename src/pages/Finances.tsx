@@ -1,9 +1,10 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
+import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
 
 const categories = ['Еда', 'Транспорт', 'Спорт', 'Развлечения', 'Здоровье', 'Образование', 'Другое'];
 
@@ -12,9 +13,16 @@ export function Finances() {
   const { state, addTransaction, removeTransaction } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
 
-  const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-  const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+  // Get available months from transactions
+  const availableMonths = getAvailableMonths(state.transactions);
+  
+  // Filter transactions by selected month
+  const filteredTransactions = filterByMonth(state.transactions, selectedMonth);
+
+  const income = filteredTransactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+  const expenses = filteredTransactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
   const savings = income - expenses;
   const savingsRate = income > 0 ? Math.round((savings / income) * 100) : 0;
   const financeScore = income > 0 ? Math.min(100, Math.round(savingsRate * 1.5)) : 0;
@@ -44,6 +52,21 @@ export function Finances() {
             <span className="text-sm">AI-финансист</span>
           </motion.button>
         </div>
+        {/* Month Selector */}
+        {availableMonths.length > 0 && (
+          <div className="flex items-center gap-2 mb-2">
+            <Calendar className="w-4 h-4 text-white/50" />
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E] text-sm flex-1"
+            >
+              {availableMonths.map(month => (
+                <option key={month} value={month}>{getMonthDisplay(month)}</option>
+              ))}
+            </select>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-[14px] bg-[#22C55E] flex items-center justify-center text-white">
             <Plus className="w-5 h-5" />
@@ -132,23 +155,23 @@ export function Finances() {
       {/* Transactions */}
       <div className="space-y-3 mb-6">
         <div className="flex items-center justify-between px-1">
-          <p className="text-white/60 text-sm">Операции</p>
+          <p className="text-white/60 text-sm">Операции за {getMonthDisplay(selectedMonth)}</p>
           <button onClick={() => setShowAdd(true)} className="text-[#22C55E] text-sm flex items-center gap-1">
             <Plus className="w-4 h-4" /> Добавить
           </button>
         </div>
 
-        {state.transactions.length === 0 ? (
+        {filteredTransactions.length === 0 ? (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="glass-card rounded-[24px] p-8 text-center">
             <div className="w-16 h-16 rounded-[20px] bg-[#22C55E]/20 flex items-center justify-center mx-auto mb-4">
               <Wallet className="w-8 h-8 text-[#22C55E]" />
             </div>
-            <h3 className="text-xl font-bold mb-2">Нет записей о финансах</h3>
+            <h3 className="text-xl font-bold mb-2">Нет записей за этот месяц</h3>
             <p className="text-white/60 text-sm mb-4">Добавьте первую операцию</p>
             <button onClick={() => setShowAdd(true)} className="px-6 py-3 bg-[#22C55E] rounded-[16px] text-white font-medium">Добавить операцию</button>
           </motion.div>
         ) : (
-          state.transactions.slice().reverse().slice(0, 10).map((t, index) => (
+          filteredTransactions.slice().reverse().slice(0, 20).map((t, index) => (
             <motion.div key={t.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + index * 0.05 }} className="glass-card rounded-[20px] p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-[12px] flex items-center justify-center ${t.type === 'income' ? 'bg-[#22C55E]/20' : 'bg-[#EF4444]/20'}`}>
