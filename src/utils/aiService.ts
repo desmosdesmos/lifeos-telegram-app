@@ -387,63 +387,99 @@ ${activeGoals.length === 0 && completedGoals.length === 0 ? '• Нет движ
 ${activeGoals.some((g: any) => g.progress === 0) ? '• Есть цели без прогресса' : ''}
 `;
     } else if (context.type === 'analysis') {
-      // Полный анализ всех сфер
+      // Полный анализ всех сфер с ДЕТАЛЯМИ
       const nutritionScore = Math.min(100, (userData.meals?.length || 0) * 20);
-      const sleepScore = userData.sleepDays?.length > 0 
+      const totalCalories = userData.meals?.reduce((sum: number, m: any) => sum + m.calories, 0) || 0;
+      const totalProtein = userData.meals?.reduce((sum: number, m: any) => sum + m.protein, 0) || 0;
+      
+      const sleepScore = userData.sleepDays?.length > 0
         ? Math.round(userData.sleepDays.reduce((sum: number, d: any) => sum + d.quality, 0) / userData.sleepDays.length)
         : 0;
-      const fitnessScore = Math.min(100, (userData.workouts?.filter((w: any) => w.completed).length || 0) * 20);
       
-      const totalIncome = userData.transactions?.filter((t: any) => t.type === 'income').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
-      const totalExpenses = userData.transactions?.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
-      const financeScore = totalIncome > 0 ? Math.min(100, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100 * 1.5)) : 0;
-      
-      const goalsScore = userData.goals?.length > 0 
-        ? Math.round((userData.goals.filter((g: any) => g.completed).length / userData.goals.length) * 100)
+      // ДЕТАЛИ СНА
+      const lastSleep = userData.sleepDays?.[userData.sleepDays.length - 1];
+      const avgDuration = userData.sleepDays?.length > 0
+        ? userData.sleepDays.reduce((sum: number, d: any) => {
+            const parts = d.duration?.split('ч') || ['0ч', '0м'];
+            const hours = parseInt(parts[0]) || 0;
+            const mins = parseInt(parts[1]) || 0;
+            return sum + hours + (mins / 60);
+          }, 0) / userData.sleepDays.length
         : 0;
       
+      const sleepDetails = lastSleep ? `
+📋 ПОСЛЕДНИЙ СОН:
+• Отбой: ${lastSleep.bedtime || 'не указано'}
+• Подъём: ${lastSleep.wakeTime || 'не указано'}
+• Продолжительность: ${lastSleep.duration || 'неизвестно'}
+• Качество: ${lastSleep.quality || 0}%
+• Глубокий: ${lastSleep.deepSleep || '0ч 0м'}
+• REM: ${lastSleep.remSleep || '0ч 0м'}
+• Лёгкий: ${lastSleep.lightSleep || '0ч 0м'}
+
+⚠️ ПРОБЛЕМЫ СО СНОМ:
+${lastSleep.quality < 60 ? '• Критически низкое качество' : ''}
+${avgDuration < 7 ? '• Недосып (меньше 7ч в среднем)' : ''}
+${lastSleep.bedtime > '23:30' ? '• Поздний отбой' : ''}
+${!lastSleep.bedtime ? '• Нет данных о времени отбоя' : ''}
+${!lastSleep.wakeTime ? '• Нет данных о времени подъёма' : ''}
+` : '😴 НЕТ ДАННЫХ О СНЕ — добавьте первую запись!';
+      
+      const fitnessScore = Math.min(100, (userData.workouts?.filter((w: any) => w.completed).length || 0) * 20);
+      const totalCaloriesBurned = userData.workouts?.filter((w: any) => w.completed).reduce((sum: number, w: any) => sum + w.calories, 0) || 0;
+
+      const totalIncome = userData.transactions?.filter((t: any) => t.type === 'income').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+      const totalExpenses = userData.transactions?.filter((t: any) => t.type === 'expense').reduce((sum: number, t: any) => sum + t.amount, 0) || 0;
+      const savings = totalIncome - totalExpenses;
+      const savingsRate = totalIncome > 0 ? Math.round((savings / totalIncome) * 100) : 0;
+      const financeScore = totalIncome > 0 ? Math.min(100, Math.round(((totalIncome - totalExpenses) / totalIncome) * 100 * 1.5)) : 0;
+      
+      const goalsScore = userData.goals?.length > 0
+        ? Math.round((userData.goals.filter((g: any) => g.completed).length / userData.goals.length) * 100)
+        : 0;
+      const activeGoals = userData.goals?.filter((g: any) => !g.completed) || [];
+      const completedGoals = userData.goals?.filter((g: any) => g.completed) || [];
+
       userDataContext = `
 📊 ПОЛНЫЙ АНАЛИЗ ЖИЗНИ:
 
 🍽 ПИТАНИЕ: ${nutritionScore}/100
 • Приёмов пищи: ${userData.meals?.length || 0}
+• Калории: ${totalCalories} ккал
+• Белки: ${totalProtein}г
 ${nutritionScore < 40 ? '• Критически мало данных' : ''}
 ${nutritionScore >= 40 && nutritionScore < 70 ? '• Нужно больше записей' : ''}
 ${nutritionScore >= 70 ? '• Хороший учёт питания' : ''}
-
-😴 СОН: ${sleepScore}/100
-• Дней записей: ${userData.sleepDays?.length || 0}
-${sleepScore === 0 ? '• Нет данных о сне' : ''}
-${sleepScore > 0 && sleepScore < 60 ? '• Плохое качество сна' : ''}
-${sleepScore >= 60 && sleepScore < 80 ? '• Среднее качество' : ''}
-${sleepScore >= 80 ? '• Отличное качество сна' : ''}
+${sleepDetails}
 
 💪 ФИТНЕС: ${fitnessScore}/100
 • Тренировок выполнено: ${userData.workouts?.filter((w: any) => w.completed).length || 0}
+• Сожжено ккал: ${totalCaloriesBurned}
 ${fitnessScore === 0 ? '• Нет тренировок' : ''}
 ${fitnessScore > 0 && fitnessScore < 40 ? '• Мало активности' : ''}
 ${fitnessScore >= 40 && fitnessScore < 70 ? '• Средняя активность' : ''}
 ${fitnessScore >= 70 ? '• Отличная активность' : ''}
 
-💰 ФИНАНСЫ: ${financeScore}/100
+💰 ФИНАНСЫ: ${financeScore || 0}/100
 • Доходы: ${totalIncome.toLocaleString()}₽
 • Расходы: ${totalExpenses.toLocaleString()}₽
-${financeScore < 50 ? '• Расходы близки к доходам' : ''}
-${financeScore >= 50 && financeScore < 70 ? '• Нормальные накопления' : ''}
-${financeScore >= 70 ? '• Отличные накопления' : ''}
+• Баланс: ${savings >= 0 ? '+' : ''}${savings.toLocaleString()}₽ (${savingsRate}%)
+${savings < 0 ? '• 🔴 Тратите больше чем зарабатываете!' : ''}
+${savingsRate >= 20 ? '• ✅ Отличные накопления!' : ''}
 
 🎯 ЦЕЛИ: ${goalsScore}/100
-• Активных: ${userData.goals?.filter((g: any) => !g.completed).length || 0}
-• Выполнено: ${userData.goals?.filter((g: any) => g.completed).length || 0}
+• Активных: ${activeGoals.length}
+• Выполнено: ${completedGoals.length}
+${activeGoals.length > 0 ? '\n📋 АКТИВНЫЕ ЦЕЛИ:\n' + activeGoals.map((g: any) => `• ${g.title}: ${g.progress}/${g.target} ${g.unit} (${g.target > 0 ? Math.round((g.progress/g.target)*100) : 0}%)`).join('\n') : ''}
 ${goalsScore === 0 ? '• Нет целей или прогресса' : ''}
-${goalsScore > 0 && goalsScore < 50 ? '• Движение медленное' : ''}
 ${goalsScore >= 50 ? '• Хороший прогресс' : ''}
 
 🔴 ГЛАВНЫЕ ПРОБЛЕМЫ:
 ${nutritionScore < 40 ? '1. Питание — критически мало данных\n' : ''}
 ${sleepScore < 60 && sleepScore > 0 ? '2. Сон — низкое качество\n' : ''}
+${lastSleep && !lastSleep.bedtime ? '3. Сон — нет времени отбоя\n' : ''}
 ${fitnessScore < 40 ? '3. Фитнес — мало активности\n' : ''}
-${financeScore < 50 ? '4. Финансы — мало откладываете\n' : ''}
+${savings < 0 ? '4. Финансы — расходы > доходов\n' : ''}
 ${goalsScore === 0 ? '5. Цели — нет движения\n' : ''}
 `;
     }
