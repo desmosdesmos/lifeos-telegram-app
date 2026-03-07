@@ -414,9 +414,10 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
   );
 }
 
-function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
+function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos?: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
+  const safePhotos = photos || [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -473,11 +474,11 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
         {/* Photos Grid */}
         <div className="space-y-4">
           <h3 className="text-lg">История фото</h3>
-          {photos.length === 0 ? (
+          {safePhotos.length === 0 ? (
             <p className="text-white/50 text-center py-8">Нет фото. Добавьте первое фото прогресса!</p>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {photos.slice().reverse().map((photo) => (
+              {safePhotos.slice().reverse().map((photo) => (
                 <div key={photo.id} className="glass-card rounded-[16px] overflow-hidden">
                   <img src={photo.photo} alt={photo.date} className="w-full h-48 object-cover" />
                   <div className="p-3">

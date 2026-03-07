@@ -6,6 +6,7 @@ import { useApp } from '../context/AppContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
 import { bjuGuide } from '../utils/macroCalculator';
 import { AIConsultantChat } from '../components/AIConsultantChat';
+import { searchByBarcode } from '../utils/barcodeDatabase';
 
 export function Nutrition() {
   const navigate = useNavigate();
@@ -172,7 +173,7 @@ export function Nutrition() {
       {/* Modals */}
       <AnimatePresence>
         {showAddMeal && <AddMealModal onClose={() => setShowAddMeal(false)} />}
-        {showScanner && <ScannerModal onClose={() => setShowScanner(false)} />}
+        {showScanner && <ScannerModal onClose={() => setShowScanner(false)} onAdd={addMeal} />}
         {showProducts && <ProductsModal onClose={() => setShowProducts(false)} onAdd={addMeal} />}
         {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
         {showChat && <AIConsultantChat type="nutrition" onClose={() => setShowChat(false)} userData={{ macros: { protein: totalProtein, fat: totalFat, carbs: totalCarbs, calories: totalCalories }, targets: macroTargets }} />}
@@ -272,7 +273,7 @@ function AddMealModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ScannerModal({ onClose }: { onClose: () => void }) {
+function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: any) => void }) {
   const [barcode, setBarcode] = useState('');
   const [error, setError] = useState('');
   const [hasPermission, setHasPermission] = useState(false);
@@ -312,9 +313,23 @@ function ScannerModal({ onClose }: { onClose: () => void }) {
 
   const handleManualEntry = () => {
     if (barcode.trim()) {
-      // Здесь будет логика поиска по базе штрихкодов
-      alert(`Штрихкод ${barcode} распознан! (Функция в разработке)`);
-      onClose();
+      // Поиск продукта по штрихкоду
+      const product = searchByBarcode(barcode);
+      if (product) {
+        const now = new Date();
+        const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+        onAdd({
+          name: `${product.name} (${product.store || ''})`,
+          calories: product.calories,
+          protein: product.protein,
+          fat: product.fat,
+          carbs: product.carbs,
+          time,
+        });
+        onClose();
+      } else {
+        alert(`Штрихкод ${barcode} не найден в базе. Попробуйте ввести вручную.`);
+      }
     }
   };
 
@@ -366,9 +381,10 @@ function ScannerModal({ onClose }: { onClose: () => void }) {
               <li>1. Разрешите доступ к камере</li>
               <li>2. Наведите штрихкод в рамку</li>
               <li>3. Продукт добавится автоматически</li>
+              <li>4. Или введите код вручную</li>
             </ol>
           </div>
-          <p className="text-white/40 text-xs mt-4">⚠️ База штрихкодов пополняется</p>
+          <p className="text-white/40 text-xs mt-4">✅ База штрихкодов: Пятёрочка, Магнит, Лента, Перекрёсток</p>
         </div>
       </motion.div>
     </motion.div>
