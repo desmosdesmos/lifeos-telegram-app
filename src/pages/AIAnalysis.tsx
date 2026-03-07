@@ -89,20 +89,20 @@ export function AIAnalysis() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-[20px] p-4 text-center">
-          <Heart className="w-6 h-6 text-[#EF4444] mx-auto mb-2" />
-          <p className="text-white/50 text-xs mb-1">Восстановление</p>
-          <p className="text-2xl font-bold">{recoveryScore || '-'}</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-[20px] p-3 text-center">
+          <Heart className="w-5 h-5 text-[#EF4444] mx-auto mb-1" />
+          <p className="text-white/50 text-[10px] mb-1">Восстан.</p>
+          <p className="text-xl font-bold">{recoveryScore || '-'}</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-[20px] p-4 text-center">
-          <Brain className="w-6 h-6 text-[#4DA3FF] mx-auto mb-2" />
-          <p className="text-white/50 text-xs mb-1">Стресс</p>
-          <p className="text-2xl font-bold">{stressLevel > 0 ? stressLevel : '-'}</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-[20px] p-3 text-center">
+          <Brain className="w-5 h-5 text-[#4DA3FF] mx-auto mb-1" />
+          <p className="text-white/50 text-[10px] mb-1">Стресс</p>
+          <p className="text-xl font-bold">{stressLevel > 0 ? stressLevel : '-'}</p>
         </motion.div>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-[20px] p-4 text-center">
-          <Activity className="w-6 h-6 text-[#22C55E] mx-auto mb-2" />
-          <p className="text-white/50 text-xs mb-1">Активность</p>
-          <p className="text-2xl font-bold">{fitnessScore > 0 ? fitnessScore : '-'}</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card rounded-[20px] p-3 text-center">
+          <Activity className="w-5 h-5 text-[#22C55E] mx-auto mb-1" />
+          <p className="text-white/50 text-[10px] mb-1">Активн.</p>
+          <p className="text-xl font-bold">{fitnessScore > 0 ? fitnessScore : '-'}</p>
         </motion.div>
       </div>
 

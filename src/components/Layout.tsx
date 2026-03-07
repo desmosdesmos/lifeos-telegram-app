@@ -20,9 +20,9 @@ export function Layout() {
       </div>
 
       {/* Bottom Navigation с анимациями */}
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[390px]">
+      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none">
         <div 
-          className="rounded-[24px] px-4 py-3 flex items-center justify-around"
+          className="rounded-[24px] px-4 py-3 flex items-center justify-around pointer-events-auto"
           style={{
             background: 'rgba(255, 255, 255, 0.12)',
             backdropFilter: 'blur(40px)',

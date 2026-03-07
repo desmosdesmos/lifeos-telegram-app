@@ -51,8 +51,8 @@ export function Statistics() {
   const sleepData = getLast7DaysSleep();
   const workoutData = getLast7DaysWorkouts();
 
-  const maxSleep = Math.max(...sleepData.map(d => d.quality), 100);
-  const maxWorkoutCalories = Math.max(...workoutData.map(w => w.calories), 100);
+  const maxSleep = sleepData.length > 0 ? Math.max(...sleepData.map(d => d.quality), 100) : 100;
+  const maxWorkoutCalories = workoutData.length > 0 ? Math.max(...workoutData.map(w => w.calories), 100) : 100;
 
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">

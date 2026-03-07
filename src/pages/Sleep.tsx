@@ -45,17 +45,24 @@ export function Sleep() {
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-3xl">Сон</h1>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-3xl">Сон</h1>
+          </div>
+          <motion.button 
+            whileTap={{ scale: 0.95 }} 
+            onClick={() => setShowChat(true)} 
+            className="px-4 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[16px] text-white font-bold flex items-center gap-2 shadow-lg shadow-[#4DA3FF]/30"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-sm">AI-консультант</span>
+          </motion.button>
         </div>
         <div className="flex items-center gap-2">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
-            <MessageCircle className="w-5 h-5" />
-          </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddDay(true)} className="w-10 h-10 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
             <Plus className="w-5 h-5" />
           </motion.button>

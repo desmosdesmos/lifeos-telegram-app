@@ -184,8 +184,8 @@ export function AIConsultantChat({ type, onClose }: AIConsultantProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-card rounded-t-[32px] w-full max-w-md h-[85vh] flex flex-col pb-20">
+    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+      <div className="glass-card rounded-t-[32px] w-full max-w-md h-[85vh] flex flex-col pb-24">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">
           <div className="flex items-center gap-3">

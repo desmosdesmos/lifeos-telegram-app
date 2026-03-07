@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
 import { bjuGuide } from '../utils/macroCalculator';
@@ -24,17 +24,24 @@ export function Nutrition() {
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-3xl">Питание</h1>
+      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <h1 className="text-3xl">Питание</h1>
+          </div>
+          <motion.button 
+            whileTap={{ scale: 0.95 }} 
+            onClick={() => setShowChat(true)} 
+            className="px-4 py-3 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[16px] text-white font-bold flex items-center gap-2 shadow-lg shadow-[#4DA3FF]/30"
+          >
+            <MessageCircle className="w-5 h-5" />
+            <span className="text-sm">AI-консультант</span>
+          </motion.button>
         </div>
         <div className="flex items-center gap-2">
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
-            <MessageCircle className="w-5 h-5" />
-          </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowGuide(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
             <Info className="w-5 h-5" />
           </motion.button>
@@ -267,24 +274,47 @@ function AddMealModal({ onClose }: { onClose: () => void }) {
 
 function ScannerModal({ onClose }: { onClose: () => void }) {
   const [barcode, setBarcode] = useState('');
-  
+  const videoRef = useRef<HTMLVideoElement>(null);
+
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Сканировать штрихкод</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
-        <div className="text-center py-8">
-          <div className="w-32 h-32 mx-auto mb-6 rounded-[20px] bg-white/5 border-2 border-dashed border-white/20 flex items-center justify-center">
-            <Scan className="w-12 h-12 text-white/40" />
+        <div className="text-center py-4">
+          <div className="w-full h-48 mx-auto mb-4 rounded-[20px] bg-black overflow-hidden relative">
+            <video 
+              ref={videoRef}
+              autoPlay 
+              playsInline
+              className="w-full h-full object-cover"
+            />
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="w-40 h-24 border-2 border-[#22C55E] rounded-lg" />
+            </div>
           </div>
-          <p className="text-white/60 mb-4">Наведите камеру на штрихкод продукта</p>
+          <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
           <div className="flex gap-2 mb-4">
-            <input type="text" value={barcode} onChange={(e) => setBarcode(e.target.value)} placeholder="Введите код вручную" className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-            <button className="px-6 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium">OK</button>
+            <input 
+              type="number" 
+              value={barcode} 
+              onChange={(e) => setBarcode(e.target.value)} 
+              placeholder="Или введите код" 
+              className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm" 
+            />
+            <button className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
           </div>
-          <p className="text-white/40 text-xs">Функция сканирования в разработке</p>
+          <div className="glass-card rounded-[16px] p-4 text-left">
+            <p className="text-xs text-white/50 mb-2">📌 Инструкция:</p>
+            <ol className="text-xs text-white/40 space-y-1">
+              <li>1. Разрешите доступ к камере</li>
+              <li>2. Наведите штрихкод в рамку</li>
+              <li>3. Продукт добавится автоматически</li>
+            </ol>
+          </div>
+          <p className="text-white/40 text-xs mt-4">⚠️ База штрихкодов пополняется</p>
         </div>
       </motion.div>
     </motion.div>
