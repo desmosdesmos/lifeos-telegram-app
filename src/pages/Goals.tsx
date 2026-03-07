@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Target, Plus, Calendar, Trophy, Trash2, Edit2, Brain } from 'lucide-react';
+import { ChevronLeft, Target, Plus, Calendar, Trophy, Trash2, Edit2, Brain, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AIConsultantChat } from '../components/AIConsultantChat';
 
 const categoryColors: Record<string, string> = {
   health: '#EF4444',
@@ -22,6 +23,7 @@ export function Goals() {
   const navigate = useNavigate();
   const { state, addGoal, updateGoal, removeGoal } = useApp();
   const [showAddGoal, setShowAddGoal] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
 
   const completedCount = state.goals.filter(g => g.completed).length;
@@ -44,9 +46,14 @@ export function Goals() {
           </button>
           <h1 className="text-3xl">Цели</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddGoal(true)} className="w-10 h-10 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
-          <Plus className="w-5 h-5" />
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddGoal(true)} className="w-10 h-10 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
+            <Plus className="w-5 h-5" />
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* AI Coach */}
@@ -195,6 +202,7 @@ export function Goals() {
             </motion.div>
           </motion.div>
         )}
+        {showChat && <AIConsultantChat type="goals" onClose={() => setShowChat(false)} userData={{ goals: state.goals }} />}
       </AnimatePresence>
     </div>
   );

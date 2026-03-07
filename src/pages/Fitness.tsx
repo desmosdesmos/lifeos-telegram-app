@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain } from 'lucide-react';
+import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { AIConsultantChat } from '../components/AIConsultantChat';
 
 const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
 const workoutTemplates = [
@@ -19,6 +20,7 @@ export function Fitness() {
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [showWeekPlan, setShowWeekPlan] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
 
@@ -51,6 +53,9 @@ export function Fitness() {
           <h1 className="text-3xl">Фитнес</h1>
         </div>
         <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#F59E0B]">
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowTimer(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#F59E0B]">
             <Timer className="w-5 h-5" />
           </motion.button>
@@ -198,6 +203,7 @@ export function Fitness() {
         {showAddWorkout && <AddWorkoutModal onClose={() => setShowAddWorkout(false)} onAdd={addWorkout} />}
         {showTimer && <TimerModal onClose={() => setShowTimer(false)} time={timerSeconds} active={timerActive} setActive={setTimerActive} setTime={setTimerSeconds} onAddWorkout={addWorkout} />}
         {showWeekPlan && <WeekPlanModal onClose={() => setShowWeekPlan(false)} plan={weeklyPlan} setPlan={setWeeklyPlan} />}
+        {showChat && <AIConsultantChat type="fitness" onClose={() => setShowChat(false)} userData={{ workouts: state.workouts }} />}
       </AnimatePresence>
     </div>
   );

@@ -1,10 +1,11 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat } from 'lucide-react';
+import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
 import { bjuGuide } from '../utils/macroCalculator';
+import { AIConsultantChat } from '../components/AIConsultantChat';
 
 export function Nutrition() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export function Nutrition() {
   const [showScanner, setShowScanner] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const totalCalories = state.meals.reduce((sum, m) => sum + m.calories, 0);
   const totalProtein = state.meals.reduce((sum, m) => sum + m.protein, 0);
@@ -30,6 +32,9 @@ export function Nutrition() {
           <h1 className="text-3xl">Питание</h1>
         </div>
         <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowGuide(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
             <Info className="w-5 h-5" />
           </motion.button>
@@ -163,6 +168,7 @@ export function Nutrition() {
         {showScanner && <ScannerModal onClose={() => setShowScanner(false)} />}
         {showProducts && <ProductsModal onClose={() => setShowProducts(false)} onAdd={addMeal} />}
         {showGuide && <GuideModal onClose={() => setShowGuide(false)} />}
+        {showChat && <AIConsultantChat type="nutrition" onClose={() => setShowChat(false)} userData={{ macros: { protein: totalProtein, fat: totalFat, carbs: totalCarbs, calories: totalCalories }, targets: macroTargets }} />}
       </AnimatePresence>
     </div>
   );

@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AIConsultantChat } from '../components/AIConsultantChat';
 
 const categories = ['Еда', 'Транспорт', 'Спорт', 'Развлечения', 'Здоровье', 'Образование', 'Другое'];
 
@@ -10,6 +11,7 @@ export function Finances() {
   const navigate = useNavigate();
   const { state, addTransaction, removeTransaction } = useApp();
   const [showAdd, setShowAdd] = useState(false);
+  const [showChat, setShowChat] = useState(false);
 
   const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
   const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -32,9 +34,14 @@ export function Finances() {
           </button>
           <h1 className="text-3xl">Финансы</h1>
         </div>
-        <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-[14px] bg-[#22C55E] flex items-center justify-center text-white">
-          <Plus className="w-5 h-5" />
-        </motion.button>
+        <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#22C55E]">
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAdd(true)} className="w-10 h-10 rounded-[14px] bg-[#22C55E] flex items-center justify-center text-white">
+            <Plus className="w-5 h-5" />
+          </motion.button>
+        </div>
       </motion.div>
 
       {/* AI Financial Advisor */}
@@ -161,6 +168,7 @@ export function Finances() {
       {/* Add Modal */}
       <AnimatePresence>
         {showAdd && <AddTransactionModal onClose={() => setShowAdd(false)} onAdd={addTransaction} />}
+        {showChat && <AIConsultantChat type="finance" onClose={() => setShowChat(false)} userData={{ income, expenses, savings, savingsRate, transactions: state.transactions }} />}
       </AnimatePresence>
     </div>
   );

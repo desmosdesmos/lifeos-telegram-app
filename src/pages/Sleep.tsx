@@ -1,13 +1,15 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Moon, Plus, Trash2, Brain, TrendingUp } from 'lucide-react';
+import { ChevronLeft, Moon, Plus, Trash2, Brain, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { AIConsultantChat } from '../components/AIConsultantChat';
 
 export function Sleep() {
   const navigate = useNavigate();
   const { state, addSleepDay, removeSleepDay } = useApp();
   const [showAddDay, setShowAddDay] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [editData, setEditData] = useState({
     bedtime: '23:00',
     wakeTime: '07:00',
@@ -51,6 +53,9 @@ export function Sleep() {
           <h1 className="text-3xl">Сон</h1>
         </div>
         <div className="flex items-center gap-2">
+          <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowChat(true)} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center text-[#4DA3FF]">
+            <MessageCircle className="w-5 h-5" />
+          </motion.button>
           <motion.button whileTap={{ scale: 0.95 }} onClick={() => setShowAddDay(true)} className="w-10 h-10 rounded-[14px] bg-[#4DA3FF] flex items-center justify-center text-white">
             <Plus className="w-5 h-5" />
           </motion.button>
@@ -146,6 +151,7 @@ export function Sleep() {
             </motion.div>
           </motion.div>
         )}
+        {showChat && <AIConsultantChat type="sleep" onClose={() => setShowChat(false)} userData={{ avgQuality, sleepDays: state.sleepDays }} />}
       </AnimatePresence>
     </div>
   );
