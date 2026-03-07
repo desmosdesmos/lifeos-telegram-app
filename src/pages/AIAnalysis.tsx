@@ -9,7 +9,9 @@ export function AIAnalysis() {
 
   // Calculate metrics based on actual data
   const nutritionScore = state.meals.length > 0 ? Math.min(100, state.meals.length * 25) : 0;
-  const sleepScore = state.sleep.quality;
+  const sleepScore = state.sleepDays.length > 0 
+    ? Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length)
+    : 0;
   const fitnessScore = state.workouts.filter(w => w.completed).length * 25;
   
   const avgEnergy = Math.round((nutritionScore + sleepScore + fitnessScore) / 3);

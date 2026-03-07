@@ -9,7 +9,9 @@ export function Dashboard() {
 
   const calculateLifeScore = () => {
     const nutritionScore = Math.min(20, (state.meals.length / 3) * 20);
-    const sleepScore = state.sleep.quality > 0 ? (state.sleep.quality / 100) * 20 : 0;
+    const sleepScore = state.sleepDays.length > 0 
+      ? (state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length / 100) * 20 
+      : 0;
     const fitnessScore = Math.min(20, (state.workouts.filter(w => w.completed).length / 3) * 20);
     const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
@@ -22,7 +24,7 @@ export function Dashboard() {
 
   const lifeAreas = [
     { name: 'Питание', score: state.meals.length > 0 ? Math.min(100, state.meals.length * 20) : 0, icon: Apple, path: '/nutrition', color: '#22C55E', trend: state.meals.length > 0 ? `+${state.meals.length}` : '0' },
-    { name: 'Сон', score: state.sleep.quality, icon: Moon, path: '/sleep', color: '#4DA3FF', trend: state.sleep.quality > 0 ? `${state.sleep.quality}%` : '0%' },
+    { name: 'Сон', score: state.sleepDays.length > 0 ? Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length) : 0, icon: Moon, path: '/sleep', color: '#4DA3FF', trend: state.sleepDays.length > 0 ? `${Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length)}%` : '0%' },
     { name: 'Фитнес', score: state.workouts.filter(w => w.completed).length * 20, icon: Dumbbell, path: '/fitness', color: '#F59E0B', trend: `+${state.workouts.filter(w => w.completed).length}` },
     { name: 'Финансы', score: state.transactions.length > 0 ? 60 : 0, icon: DollarSign, path: '/finances', color: '#22C55E', trend: state.transactions.length > 0 ? 'Активно' : '0' },
     { name: 'Цели', score: state.goals.length > 0 ? Math.round((state.goals.filter(g => g.completed).length / state.goals.length) * 100) : 0, icon: Target, path: '/goals', color: '#4DA3FF', trend: `${state.goals.filter(g => g.completed).length}/${state.goals.length}` },

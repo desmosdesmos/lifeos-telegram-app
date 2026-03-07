@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
+import { calculateMacroTargets, type MacroTargets } from '../utils/macroCalculator';
 
 interface UserProfile {
   name: string;
   age: number;
   weight: number;
   height: number;
+  gender: 'male' | 'female';
   goal: string;
   lifestyle: string;
 }
@@ -18,6 +20,18 @@ interface Meal {
   fat: number;
   carbs: number;
   time: string;
+}
+
+interface SleepDay {
+  id: number;
+  date: string;
+  bedtime: string;
+  wakeTime: string;
+  duration: string;
+  quality: number;
+  deepSleep: string;
+  remSleep: string;
+  lightSleep: string;
 }
 
 interface Workout {
@@ -51,23 +65,13 @@ interface Goal {
   completed: boolean;
 }
 
-interface SleepData {
-  bedtime: string;
-  wakeTime: string;
-  duration: string;
-  quality: number;
-  deepSleep: string;
-  remSleep: string;
-  lightSleep: string;
-}
-
 interface AppState {
   profile: UserProfile;
   meals: Meal[];
+  sleepDays: SleepDay[];
   workouts: Workout[];
   transactions: Transaction[];
   goals: Goal[];
-  sleep: SleepData;
   hasCompletedOnboarding: boolean;
 }
 
@@ -77,45 +81,42 @@ const defaultState: AppState = {
     age: 0,
     weight: 0,
     height: 0,
+    gender: 'male',
     goal: 'Улучшение здоровья',
     lifestyle: 'Умеренно активный',
   },
   meals: [],
+  sleepDays: [],
   workouts: [],
   transactions: [],
   goals: [],
-  sleep: {
-    bedtime: '23:00',
-    wakeTime: '07:00',
-    duration: '0ч 0м',
-    quality: 0,
-    deepSleep: '0ч 0м',
-    remSleep: '0ч 0м',
-    lightSleep: '0ч 0м',
-  },
   hasCompletedOnboarding: false,
 };
 
 interface AppContextType {
   state: AppState;
+  macroTargets: MacroTargets;
   updateProfile: (profile: Partial<UserProfile>) => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: number) => void;
+  addSleepDay: (sleepDay: Omit<SleepDay, 'id'>) => void;
+  updateSleepDay: (id: number, sleepDay: Partial<SleepDay>) => void;
+  removeSleepDay: (id: number) => void;
   addWorkout: (workout: Omit<Workout, 'id'>) => void;
   removeWorkout: (id: number) => void;
+  updateWorkout: (id: number, workout: Partial<Workout>) => void;
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
   removeTransaction: (id: number) => void;
   addGoal: (goal: Omit<Goal, 'id'>) => void;
   updateGoal: (id: number, goal: Partial<Goal>) => void;
   removeGoal: (id: number) => void;
-  updateSleep: (sleep: Partial<SleepData>) => void;
   completeOnboarding: () => void;
   resetAllData: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
 
-const STORAGE_KEY = 'lifeos_app_data';
+const STORAGE_KEY = 'lifeos_app_data_v2';
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => {
@@ -133,6 +134,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
+
+  // Calculate macro targets based on profile
+  const macroTargets = calculateMacroTargets({
+    weight: state.profile.weight,
+    height: state.profile.height,
+    age: state.profile.age,
+    gender: state.profile.gender,
+    goal: state.profile.goal,
+    lifestyle: state.profile.lifestyle,
+  });
 
   const updateProfile = (profile: Partial<UserProfile>) => {
     setState(prev => ({ ...prev, profile: { ...prev.profile, ...profile } }));
@@ -152,6 +163,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
+  const addSleepDay = (sleepDay: Omit<SleepDay, 'id'>) => {
+    setState(prev => ({
+      ...prev,
+      sleepDays: [...prev.sleepDays, { ...sleepDay, id: Date.now() }],
+    }));
+  };
+
+  const updateSleepDay = (id: number, sleepDay: Partial<SleepDay>) => {
+    setState(prev => ({
+      ...prev,
+      sleepDays: prev.sleepDays.map(s => s.id === id ? { ...s, ...sleepDay } : s),
+    }));
+  };
+
+  const removeSleepDay = (id: number) => {
+    setState(prev => ({
+      ...prev,
+      sleepDays: prev.sleepDays.filter(s => s.id !== id),
+    }));
+  };
+
   const addWorkout = (workout: Omit<Workout, 'id'>) => {
     setState(prev => ({
       ...prev,
@@ -163,6 +195,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(prev => ({
       ...prev,
       workouts: prev.workouts.filter(w => w.id !== id),
+    }));
+  };
+
+  const updateWorkout = (id: number, workout: Partial<Workout>) => {
+    setState(prev => ({
+      ...prev,
+      workouts: prev.workouts.map(w => w.id === id ? { ...w, ...workout } : w),
     }));
   };
 
@@ -201,13 +240,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   };
 
-  const updateSleep = (sleep: Partial<SleepData>) => {
-    setState(prev => ({
-      ...prev,
-      sleep: { ...prev.sleep, ...sleep },
-    }));
-  };
-
   const completeOnboarding = () => {
     setState(prev => ({ ...prev, hasCompletedOnboarding: true }));
   };
@@ -220,17 +252,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
   return (
     <AppContext.Provider value={{
       state,
+      macroTargets,
       updateProfile,
       addMeal,
       removeMeal,
+      addSleepDay,
+      updateSleepDay,
+      removeSleepDay,
       addWorkout,
       removeWorkout,
+      updateWorkout,
       addTransaction,
       removeTransaction,
       addGoal,
       updateGoal,
       removeGoal,
-      updateSleep,
       completeOnboarding,
       resetAllData,
     }}>
