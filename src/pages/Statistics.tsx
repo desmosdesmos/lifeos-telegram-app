@@ -1,16 +1,37 @@
 import { motion } from 'motion/react';
 import { ChevronLeft, TrendingUp, TrendingDown, Activity, Moon, Flame, Droplets } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
 
 export function Statistics() {
   const navigate = useNavigate();
   const { state } = useApp();
+  const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+
+  // Get available months from all data
+  const allData = [
+    ...state.progressPhotos,
+    ...state.sleepDays,
+    ...state.workouts,
+  ];
+  const availableMonths = getAvailableMonths(allData);
+  
+  // Filter data by selected month
+  const filteredSleep = filterByMonth(state.sleepDays, selectedMonth);
+  const filteredWorkouts = filterByMonth(state.workouts, selectedMonth);
+  const filteredPhotos = filterByMonth(state.progressPhotos, selectedMonth);
+  const filteredMeals = state.meals.filter(m => {
+    const mealDate = new Date(m.time);
+    const mealMonth = `${mealDate.getFullYear()}-${String(mealDate.getMonth() + 1).padStart(2, '0')}`;
+    return mealMonth === selectedMonth;
+  });
 
   // Calculate trends
   const getWeightTrend = () => {
-    if (state.progressPhotos.length < 2) return 0;
-    const sorted = [...state.progressPhotos].sort((a, b) => 
+    if (filteredPhotos.length < 2) return 0;
+    const sorted = [...filteredPhotos].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     const first = sorted[0].weight;
@@ -19,15 +40,9 @@ export function Statistics() {
   };
 
   const getSleepTrend = () => {
-    if (state.sleepDays.length < 2) return 0;
-    const sorted = [...state.sleepDays].sort((a, b) => 
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    );
-    const recent = sorted.slice(-7);
-    const avg = recent.reduce((sum, d) => sum + d.quality, 0) / recent.length;
-    const previous = sorted.slice(-14, -7);
-    const prevAvg = previous.length > 0 ? previous.reduce((sum, d) => sum + d.quality, 0) / previous.length : avg;
-    return avg - prevAvg;
+    if (filteredSleep.length < 2) return 0;
+    const avg = filteredSleep.reduce((sum, d) => sum + d.quality, 0) / filteredSleep.length;
+    return avg - 50; // Compare to baseline
   };
 
   const weightTrend = getWeightTrend();
@@ -35,14 +50,14 @@ export function Statistics() {
 
   // Get last 7 days data for charts
   const getLast7DaysSleep = () => {
-    const sorted = [...state.sleepDays].sort((a, b) => 
+    const sorted = [...filteredSleep].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     return sorted.slice(-7);
   };
 
   const getLast7DaysWorkouts = () => {
-    const sorted = [...state.workouts].sort((a, b) => 
+    const sorted = [...filteredWorkouts].sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
     );
     return sorted.slice(-7);
@@ -61,7 +76,20 @@ export function Statistics() {
         <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
           <ChevronLeft className="w-5 h-5" />
         </button>
-        <h1 className="text-3xl">Статистика</h1>
+        <div className="flex-1">
+          <h1 className="text-3xl">Статистика</h1>
+          {availableMonths.length > 0 && (
+            <select 
+              value={selectedMonth} 
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="glass-card rounded-[12px] px-3 py-1 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B] text-sm mt-1"
+            >
+              {availableMonths.map(month => (
+                <option key={month} value={month}>{getMonthDisplay(month)}</option>
+              ))}
+            </select>
+          )}
+        </div>
       </motion.div>
 
       {/* Summary Cards */}
@@ -72,8 +100,8 @@ export function Statistics() {
             <span className="text-white/60 text-xs">Вес</span>
           </div>
           <p className="text-2xl font-bold">
-            {state.progressPhotos.length > 0 
-              ? state.progressPhotos[state.progressPhotos.length - 1].weight 
+            {filteredPhotos.length > 0 
+              ? filteredPhotos[filteredPhotos.length - 1].weight 
               : '-'}
           </p>
           <div className="flex items-center gap-1 mt-1">
@@ -98,8 +126,8 @@ export function Statistics() {
             <span className="text-white/60 text-xs">Сон</span>
           </div>
           <p className="text-2xl font-bold">
-            {sleepData.length > 0 
-              ? Math.round(sleepData.reduce((sum, d) => sum + d.quality, 0) / sleepData.length)
+            {filteredSleep.length > 0 
+              ? Math.round(filteredSleep.reduce((sum, d) => sum + d.quality, 0) / filteredSleep.length)
               : '-'}
           </p>
           <div className="flex items-center gap-1 mt-1">
@@ -123,8 +151,8 @@ export function Statistics() {
             <Flame className="w-5 h-5 text-[#F59E0B]" />
             <span className="text-white/60 text-xs">Тренировки</span>
           </div>
-          <p className="text-2xl font-bold">{workoutData.length}</p>
-          <p className="text-xs text-white/40 mt-1">за последнюю неделю</p>
+          <p className="text-2xl font-bold">{filteredWorkouts.length}</p>
+          <p className="text-xs text-white/40 mt-1">за {getMonthDisplay(selectedMonth)}</p>
         </motion.div>
 
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card rounded-[20px] p-4">
@@ -132,7 +160,7 @@ export function Statistics() {
             <Droplets className="w-5 h-5 text-[#22C55E]" />
             <span className="text-white/60 text-xs">Питание</span>
           </div>
-          <p className="text-2xl font-bold">{state.meals.length}</p>
+          <p className="text-2xl font-bold">{filteredMeals.length}</p>
           <p className="text-xs text-white/40 mt-1">приёмов пищи</p>
         </motion.div>
       </div>
@@ -182,18 +210,18 @@ export function Statistics() {
       )}
 
       {/* Progress Photos Summary */}
-      {state.progressPhotos.length > 0 && (
+      {filteredPhotos.length > 0 && (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass-card rounded-[24px] p-5 mb-6">
-          <h3 className="text-lg mb-4">Прогресс тела</h3>
+          <h3 className="text-lg mb-4">Прогресс тела за {getMonthDisplay(selectedMonth)}</h3>
           <div className="grid grid-cols-3 gap-3">
-            {state.progressPhotos.slice(-3).reverse().map((photo) => (
+            {filteredPhotos.slice(-3).reverse().map((photo) => (
               <div key={photo.id} className="aspect-square rounded-[16px] overflow-hidden">
                 <img src={photo.photo} alt={photo.date} className="w-full h-full object-cover" />
               </div>
             ))}
           </div>
           <p className="text-white/40 text-xs mt-3 text-center">
-            {state.progressPhotos.length} фото всего
+            {filteredPhotos.length} фото за месяц
           </p>
         </motion.div>
       )}

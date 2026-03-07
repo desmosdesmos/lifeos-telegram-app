@@ -71,14 +71,23 @@ export function Sleep() {
 
       {/* AI Sleep Doctor */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4 mb-6 bg-gradient-to-r from-[#4DA3FF]/10 to-[#22C55E]/5">
-        <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-[12px] bg-[#4DA3FF]/20 flex items-center justify-center">
-            <Brain className="w-5 h-5 text-[#4DA3FF]" />
+        <div className="flex items-start justify-between mb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-[#4DA3FF]/20 flex items-center justify-center">
+              <Brain className="w-5 h-5 text-[#4DA3FF]" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold">AI Сомнолог</h3>
+              <p className="text-xs text-white/50">Персональные рекомендации по сну</p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold">AI Сомнолог</h3>
-            <p className="text-xs text-white/50">Персональные рекомендации по сну</p>
-          </div>
+          <button 
+            onClick={() => setShowChat(true)}
+            className="px-3 py-1.5 bg-[#4DA3FF]/20 hover:bg-[#4DA3FF]/30 transition-colors rounded-[12px] text-[#4DA3FF] text-xs font-bold flex items-center gap-1"
+          >
+            <MessageCircle className="w-3 h-3" />
+            Чат
+          </button>
         </div>
         <AISleepDoctor avgQuality={avgQuality} sleepDays={state.sleepDays} />
       </motion.div>
