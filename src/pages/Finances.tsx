@@ -459,15 +459,25 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
                     type="file"
                     accept=".pdf"
                     onChange={(e) => e.target.files?.[0] && handlePDFUpload(e.target.files[0])}
+                    disabled={isLoading}
                     className="hidden"
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-[#4DA3FF] rounded-[12px] text-white text-sm font-medium"
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-[#4DA3FF] rounded-[12px] text-white text-sm font-medium disabled:opacity-50"
                   >
-                    Выбрать PDF
+                    {isLoading ? 'Обработка...' : 'Выбрать PDF'}
                   </button>
                 </div>
+
+                {isLoading && (
+                  <div className="glass-card rounded-[16px] p-6 text-center">
+                    <div className="animate-spin w-8 h-8 border-4 border-[#4DA3FF] border-t-transparent rounded-full mx-auto mb-3" />
+                    <p className="text-white/70 text-sm">Обработка PDF...</p>
+                    <p className="text-white/40 text-xs mt-1">Распознаём транзакции из выписки</p>
+                  </div>
+                )}
 
                 <div className="glass-card rounded-[16px] p-4">
                   <p className="text-xs text-white/50 mb-2">📌 Как получить PDF выписку:</p>

@@ -26,7 +26,15 @@ export async function parsePDF(
 ): Promise<ImportedTransaction[]> {
   try {
     const arrayBuffer = await file.arrayBuffer();
+    
+    // Загружаем worker локально или с CDN
+    if (!PDFJS.GlobalWorkerOptions.workerSrc) {
+      PDFJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+    }
+    
     const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
+    
+    console.log('PDF pages:', pdf.numPages);
     
     let fullText = '';
     
@@ -36,29 +44,51 @@ export async function parsePDF(
       const textContent = await page.getTextContent();
       const pageText = textContent.items.map((item: any) => item.str).join(' ');
       fullText += pageText + '\n';
+      console.log(`Page ${i} text:`, pageText.substring(0, 200));
     }
     
-    console.log('PDF text:', fullText.substring(0, 500));
+    console.log('Full PDF text length:', fullText.length);
+    console.log('Full PDF text:', fullText.substring(0, 1000));
+    
+    // Если текст не извлёкся, пробуем OCR
+    if (fullText.trim().length < 50) {
+      throw new Error('PDF не содержит текстового слоя. Это может быть скан изображения.');
+    }
     
     // Определяем банк по содержимому
     const detectedBank = detectBankFromPDF(fullText);
+    console.log('Detected bank:', detectedBank);
     
     // Парсим в зависимости от банка
+    let transactions: ImportedTransaction[] = [];
     switch (detectedBank) {
       case 'sberbank':
-        return parseSberbankPDF(fullText);
+        transactions = parseSberbankPDF(fullText);
+        break;
       case 'tinkoff':
-        return parseTinkoffPDF(fullText);
+        transactions = parseTinkoffPDF(fullText);
+        break;
       case 'alfa':
-        return parseAlfaPDF(fullText);
+        transactions = parseAlfaPDF(fullText);
+        break;
       case 'vtb':
-        return parseVTBPDF(fullText);
+        transactions = parseVTBPDF(fullText);
+        break;
       default:
-        return parseGenericPDF(fullText);
+        transactions = parseGenericPDF(fullText);
+        break;
     }
-  } catch (error) {
+    
+    console.log('Parsed transactions:', transactions.length);
+    
+    if (transactions.length === 0) {
+      throw new Error('Не найдено транзакций в PDF. Убедитесь, что это выписка с операциями.');
+    }
+    
+    return transactions;
+  } catch (error: any) {
     console.error('PDF parse error:', error);
-    throw new Error('Не удалось распарсить PDF файл');
+    throw new Error(error.message || 'Не удалось распарсить PDF файл');
   }
 }
 

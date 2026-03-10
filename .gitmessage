@@ -1,7 +1,6 @@
-feat: PDF импорт выписок из банков
+fix: PDF import loading indicator and error handling
 
-- Парсинг PDF выписок (Сбербанк, Тинькофф, Альфа, ВТБ)
-- Авто-определение банка по содержимому
-- Извлечение транзакций с датами, суммами и категориями
-- Поддержка text-based PDF из банковских приложений
-- PDF выбран методом по умолчанию
+- Add loading spinner during PDF processing
+- Show error message if no transactions found
+- Better PDF text extraction logging
+- Handle PDFs without text layer
