@@ -1,10 +1,7 @@
-feat: bank transaction import + barcode scanner fix
+feat: PDF импорт выписок из банков
 
-- CSV import for Sberbank, Tinkoff, Alfa, VTB
-- SMS notifications parsing  
-- OCR screenshot support (Tesseract.js)
-- Auto-categorization of transactions
-- Fixed barcode scanner (html5-qrcode)
-- Improved AI chat error handling (timeout, CORS)
-- Move API keys to environment variables
-- New dependencies: html5-qrcode, papaparse, tesseract.js
+- Парсинг PDF выписок (Сбербанк, Тинькофф, Альфа, ВТБ)
+- Авто-определение банка по содержимому
+- Извлечение транзакций с датами, суммами и категориями
+- Поддержка text-based PDF из банковских приложений
+- PDF выбран методом по умолчанию

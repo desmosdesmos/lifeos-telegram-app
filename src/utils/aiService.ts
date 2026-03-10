@@ -3,7 +3,7 @@
 // Быстрее Gemini, работает из РФ, бесплатно
 // API ключ хранится в переменной окружения VITE_GROQ_API_KEY
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export interface AIResponse {
