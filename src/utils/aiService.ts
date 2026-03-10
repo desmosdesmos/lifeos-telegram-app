@@ -1,10 +1,18 @@
-// Groq AI Service
-// API: https://console.groq.com/docs
-// Быстрее Gemini, работает из РФ, бесплатно
-// API ключ хранится в переменной окружения VITE_GROQ_API_KEY
+// GigaChat AI Service (Сбер)
+// API: https://developers.sber.ru/docs/ru/gigachat
+// Работает в РФ без VPN, бесплатно
+// API ключи хранятся в переменных окружения VITE_GIGACHAT_*
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GIGACHAT_AUTH_URL = 'https://ngw.devices.sberbank.ru:9443/api/v2/oauth';
+const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v2/chat/completions';
+
+// Получаем из env
+const GIGACHAT_CLIENT_ID = import.meta.env.VITE_GIGACHAT_CLIENT_ID || '';
+const GIGACHAT_CLIENT_SECRET = import.meta.env.VITE_GIGACHAT_CLIENT_SECRET || '';
+
+// Кэш токена
+let gigaChatToken: string | null = null;
+let tokenExpiresAt: number = 0;
 
 export interface AIResponse {
   text: string;
@@ -24,7 +32,7 @@ export interface ImageAnalysis {
 
 // Системные промпты для каждого консультанта
 const systemPrompts = {
-  nutrition: `Ты профессиональный AI нутрициолог с 10-летним опытом. 
+  nutrition: `Ты профессиональный AI нутрициолог с 10-летним опытом.
 Твоя задача: анализировать рацион пользователя и давать персональные рекомендации.
 Отвечай кратко (2-4 предложения), по делу, с конкретными цифрами.
 Используй дружеский, поддерживающий тон.
@@ -56,7 +64,51 @@ const systemPrompts = {
 Выдели 1-2 главных приоритета для работы.`,
 };
 
-// Отправка сообщения в Groq
+// Получение токена доступа GigaChat
+async function getGigaChatToken(): Promise<string> {
+  // Если токен есть и не истёк — возвращаем
+  if (gigaChatToken && Date.now() < tokenExpiresAt) {
+    return gigaChatToken;
+  }
+
+  try {
+    console.log('Getting new GigaChat token...');
+    
+    const authString = `${GIGACHAT_CLIENT_ID}:${GIGACHAT_CLIENT_SECRET}`;
+    const encodedAuth = btoa(authString);
+
+    const response = await fetch(GIGACHAT_AUTH_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'application/json',
+        'Authorization': `Basic ${encodedAuth}`,
+      },
+      body: 'scope=GIGACHAT_API_B2B',
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      console.error('GigaChat auth error:', errorData);
+      throw new Error(`GigaChat auth error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    gigaChatToken = data.access_token;
+    
+    // Токен живёт 30 минут, кэшируем на 25 минут
+    tokenExpiresAt = Date.now() + (25 * 60 * 1000);
+    
+    console.log('GigaChat token received, expires at:', new Date(tokenExpiresAt));
+    
+    return gigaChatToken!;
+  } catch (error) {
+    console.error('Failed to get GigaChat token:', error);
+    throw error;
+  }
+}
+
+// Отправка сообщения в GigaChat
 export async function sendMessage(
   message: string,
   context: {
@@ -69,34 +121,35 @@ export async function sendMessage(
   const prompt = buildPrompt(message, context);
 
   try {
-    console.log('Sending to Groq:', prompt.substring(0, 100));
+    console.log('Sending to GigaChat:', prompt.substring(0, 100));
+
+    // Получаем токен
+    const token = await getGigaChatToken();
 
     // Создаём AbortController для timeout
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд timeout
 
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(GIGACHAT_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'GigaChat',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
         max_tokens: 500,
-        top_p: 1,
-        stream: false,
       }),
       signal: controller.signal,
     });
 
     clearTimeout(timeoutId);
-    console.log('Groq response status:', response.status);
+    console.log('GigaChat response status:', response.status);
 
     if (!response.ok) {
       let errorData;
@@ -105,27 +158,24 @@ export async function sendMessage(
       } catch {
         errorData = { error: 'Не удалось прочитать ответ API' };
       }
-      console.error('Groq API error:', errorData);
+      console.error('GigaChat API error:', errorData);
       
-      // Специфичные сообщения об ошибках
       if (response.status === 401) {
-        throw new Error('Неверный API ключ');
+        throw new Error('Ошибка авторизации GigaChat');
       } else if (response.status === 429) {
-        throw new Error('Слишком много запросов. Попробуйте позже');
+        throw new Error('Слишком много запросов');
       } else if (response.status === 500) {
-        throw new Error('Сервер Groq недоступен');
-      } else if (response.status === 0 || response.status === 403) {
-        throw new Error('Нет соединения с сервером (проверьте интернет/CORS)');
+        throw new Error('Сервер GigaChat недоступен');
       } else {
-        throw new Error(`Ошибка API: ${response.status} - ${JSON.stringify(errorData)}`);
+        throw new Error(`Ошибка API: ${response.status}`);
       }
     }
 
     const data = await response.json();
-    console.log('Groq response data:', data);
+    console.log('GigaChat response:', data);
 
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
-      console.warn('Unexpected Groq response structure:', data);
+      console.warn('Unexpected GigaChat response:', data);
       throw new Error('Некорректный ответ от сервера');
     }
 
@@ -133,28 +183,23 @@ export async function sendMessage(
 
     return { text: cleanResponse(text) };
   } catch (error) {
-    console.error('Groq API error:', error);
+    console.error('GigaChat API error:', error);
     
-    // Если ошибка отмены (timeout)
     if (error instanceof Error && error.name === 'AbortError') {
       return {
-        text: 'Превышено время ожидания ответа. Проверьте интернет и попробуйте снова.'
+        text: 'Превышено время ожидания. Проверьте интернет.'
       };
     }
     
     return {
-      text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' +
+      text: 'Произошла ошибка. Проверьте соединение.\n\n' +
             (error instanceof Error ? error.message : 'Неизвестная ошибка')
     };
   }
 }
 
-// Анализ еды по фото (через Gemini Vision, так как Groq не поддерживает изображения)
+// Анализ еды по фото (через GigaChat Vision)
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // Используем Gemini только для анализа изображений
-  const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
-  
   const prompt = `Проанализируй это блюдо. Определи:
 1. Что это за блюдо
 2. Примерный вес порции
@@ -171,49 +216,48 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
 Краткий комментарий по полезности.`;
 
   try {
-    const response = await fetch(`${API_URL_VISION}?key=${API_KEY}`, {
+    // Получаем токен
+    const token = await getGigaChatToken();
+
+    const response = await fetch(GIGACHAT_API_URL, {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: 'image/jpeg',
-                data: imageBase64.split(',')[1] || imageBase64,
-              },
-            },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.5,
-          maxOutputTokens: 500,
-        },
+        model: 'GigaChat',
+        messages: [
+          { 
+            role: 'user', 
+            content: [
+              { type: 'text', text: prompt },
+              { type: 'image_url', image_url: { url: imageBase64 } }
+            ]
+          }
+        ],
+        max_tokens: 500,
       }),
     });
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Gemini Vision API error:', errorData);
-      // Если Gemini не работает, возвращаем заглушку
-      return { 
+      console.error('GigaChat Vision API error:', errorData);
+      return {
         text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
         nutrition: undefined
       };
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать изображение.';
-    
+    const text = data.choices?.[0]?.message?.content || 'Не удалось проанализировать изображение.';
+
     const nutrition = parseNutrition(text);
-    
+
     return { text: cleanResponse(text), nutrition };
   } catch (error) {
-    console.error('Gemini Image API error:', error);
-    return { 
+    console.error('GigaChat Image API error:', error);
+    return {
       text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
       nutrition: undefined
     };

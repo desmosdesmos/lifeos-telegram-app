@@ -1,6 +1,9 @@
-fix: PDF import loading indicator and error handling
+feat: switch AI to GigaChat (works in Russia)
 
-- Add loading spinner during PDF processing
-- Show error message if no transactions found
-- Better PDF text extraction logging
-- Handle PDFs without text layer
+- Replace Groq with GigaChat (Sberbank AI)
+- Works in Russia without VPN
+- Free to use
+- Supports image analysis (food photos)
+- Add GIGACHAT_CLIENT_ID and GIGACHAT_CLIENT_SECRET env vars
+- Token caching (25 min)
+- Better error handling

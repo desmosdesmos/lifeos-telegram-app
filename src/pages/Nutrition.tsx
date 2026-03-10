@@ -279,7 +279,6 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
   const [error, setError] = useState('');
   const [scannedProduct, setScannedProduct] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
-  const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
   const [lastScanned, setLastScanned] = useState<string>('');
   const [scanSuccess, setScanSuccess] = useState(false);
@@ -291,31 +290,30 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
 
     const initScanner = async () => {
       try {
+        console.log('📱 Starting scanner initialization...');
+        
         html5QrCode = new Html5Qrcode('scanner-container');
         scannerRef.current = html5QrCode;
 
         const cameras = await Html5Qrcode.getCameras();
-        console.log('Available cameras:', cameras);
+        console.log('📷 Available cameras:', cameras);
         setCameraCount(cameras.length);
 
         if (cameras && cameras.length > 0) {
-          // Приоритет: задняя камера по label или последняя в списке
           let backCameraId = '';
           
-          // Ищем камеру с "back", "rear", "environment" в названии
           for (const cam of cameras) {
             const label = cam.label.toLowerCase();
             if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('задн')) {
               backCameraId = cam.id;
-              console.log('Found back camera by label:', cam.label);
+              console.log('✅ Found back camera by label:', cam.label);
               break;
             }
           }
           
-          // Если не нашли по label, берём последнюю (обычно это задняя)
           if (!backCameraId) {
             backCameraId = cameras[cameras.length - 1].id;
-            console.log('Using last camera:', cameras[cameras.length - 1].label);
+            console.log('📷 Using last camera:', cameras[cameras.length - 1].label);
           }
 
           const config = {
@@ -324,8 +322,24 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             aspectRatio: 1.7778,
             disableFlip: false,
             rememberLastUsedCamera: false,
+            formatsToSupport: [
+              'EAN_13',
+              'EAN_8',
+              'UPC_A',
+              'UPC_E',
+              'CODE_128',
+              'CODE_39',
+              'CODE_93',
+              'ITF',
+              'CODABAR',
+              'QR_CODE',
+              'DATA_MATRIX',
+              'AZTEC',
+            ],
           };
 
+          console.log('🚀 Starting camera with ID:', backCameraId);
+          
           await html5QrCode.start(
             backCameraId,
             config,
@@ -333,41 +347,37 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             onScanFailure
           );
           
+          console.log('✅ Camera started successfully');
           setIsScanning(true);
           setError('');
-          
-          // Проверяем наличие фонарика
-          const track = html5QrCode.getRunningTrackCapabilities();
-          if (track && ('fillLight' in track || 'torch' in track)) {
-            setHasFlash(true);
-            console.log('Flash available');
-          }
         } else {
           setError('Камера не найдена. Используйте ручной ввод.');
         }
       } catch (err) {
-        console.error('Camera error:', err);
-        setError('Нет доступа к камере. Разрешите доступ или введите код вручную.');
+        console.error('❌ Camera initialization error:', err);
+        setError('Нет доступа к камере: ' + (err as Error).message);
       }
     };
 
     const onScanSuccess = (decodedText: string) => {
-      console.log('✅ Barcode scanned:', decodedText);
+      console.log('🎉 SUCCESS! Barcode scanned:', decodedText);
+      console.log('📊 Barcode length:', decodedText.length);
+      console.log('📊 Barcode type:', typeof decodedText);
       
-      // Виброотклик (если поддерживается)
       if (navigator.vibrate) {
         navigator.vibrate(200);
       }
 
-      // Останавливаем сканер
       html5QrCode?.stop().then(() => {
+        console.log('🛑 Scanner stopped');
         setIsScanning(false);
         setFlashOn(false);
         setLastScanned(decodedText);
 
         const product = searchByBarcode(decodedText);
+        console.log('🔍 Product in database:', product);
+        
         if (product) {
-          // Товар найден в базе
           setScanSuccess(true);
           setScannedProduct(`${product.name} (${product.store || ''})`);
           const now = new Date();
@@ -382,24 +392,27 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
           });
           onClose();
         } else {
-          // Товар НЕ найден в базе — показываем что нашли штрихкод
           setScanSuccess(false);
           setScannedProduct(`Штрихкод: ${decodedText}`);
           setBarcode(decodedText);
-          setError('Товар не найден в базе. Добавьте вручную или введите КБЖУ.');
+          setError('Товар не найден в базе. Добавьте вручную.');
         }
       }).catch((err) => {
         console.error('Error stopping scanner:', err);
       });
     };
 
-    const onScanFailure = (_: any) => {
-      // Игнорируем ошибки сканирования - это нормально
+    const onScanFailure = (failure: any) => {
+      // Логируем только каждую 10-ю ошибку чтобы не спамить
+      if (Math.random() < 0.1) {
+        console.log('⚠️ Scan failure (normal):', failure);
+      }
     };
 
     initScanner();
 
     return () => {
+      console.log('🧹 Cleaning up scanner...');
       if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().catch((err) => console.error('Error stopping scanner:', err));
       }
@@ -457,7 +470,7 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             />
             
             {/* Flash Button */}
-            {isScanning && hasFlash && (
+            {isScanning && (
               <button
                 onClick={toggleFlash}
                 className={`absolute top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all ${flashOn ? 'bg-yellow-500/80' : 'bg-white/20'}`}
