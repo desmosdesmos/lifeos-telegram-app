@@ -251,59 +251,148 @@ function AICoach({ goals }: { goals: any[] }) {
 function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: any) => void; onCancel: () => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [progress, setProgress] = useState('');
   const [target, setTarget] = useState('');
-  const [unit, setUnit] = useState('');
+  const [unit, setUnit] = useState('раз');
   const [category, setCategory] = useState<'health' | 'fitness' | 'finance' | 'learning'>('fitness');
   const [deadline, setDeadline] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = () => {
-    if (!title || !target) return;
-    onAdd({ title, description, progress: Number(progress) || 0, target: Number(target), unit, category, deadline, completed: false });
+    if (!title.trim()) {
+      setError('Введите название цели');
+      return;
+    }
+    if (!target || Number(target) <= 0) {
+      setError('Введите корректное значение цели');
+      return;
+    }
+    setError('');
+    onAdd({ title, description, progress: 0, target: Number(target), unit, category, deadline, completed: false });
   };
 
+  const quickTargets = [
+    { label: '30 дней', value: '30', unit: 'дней' },
+    { label: '100 раз', value: '100', unit: 'раз' },
+    { label: '50 км', value: '50', unit: 'км' },
+    { label: '10 кг', value: '10', unit: 'кг' },
+    { label: '10000 ₽', value: '10000', unit: '₽' },
+  ];
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-5 pb-4">
+      {error && (
+        <div className="glass-card rounded-[16px] p-3 bg-red-500/10 border border-red-500/20">
+          <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
       <div>
-        <label className="text-white/60 text-sm mb-2 block">Название цели</label>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Например: Пробежать марафон" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+        <label className="text-white/60 text-sm mb-2 block">Название цели *</label>
+        <input 
+          type="text" 
+          value={title} 
+          onChange={(e) => setTitle(e.target.value)} 
+          placeholder="Например: Пробежать марафон" 
+          className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base"
+          autoFocus
+        />
       </div>
+
       <div>
-        <label className="text-white/60 text-sm mb-2 block">Описание</label>
-        <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Опишите вашу цель..." rows={3} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] resize-none" />
+        <label className="text-white/60 text-sm mb-2 block">Описание (необязательно)</label>
+        <textarea 
+          value={description} 
+          onChange={(e) => setDescription(e.target.value)} 
+          placeholder="Зачем вам эта цель?" 
+          rows={2} 
+          className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] resize-none text-sm" 
+        />
       </div>
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className="text-white/60 text-sm mb-2 block">Прогресс</label>
-          <input type="number" value={progress} onChange={(e) => setProgress(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-        </div>
-        <div>
-          <label className="text-white/60 text-sm mb-2 block">Цель</label>
-          <input type="number" value={target} onChange={(e) => setTarget(e.target.value)} placeholder="100" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-        </div>
-        <div>
-          <label className="text-white/60 text-sm mb-2 block">Ед. изм.</label>
-          <input type="text" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="км" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
-        </div>
-      </div>
+
       <div>
         <label className="text-white/60 text-sm mb-2 block">Категория</label>
         <div className="grid grid-cols-4 gap-2">
           {(Object.keys(categoryLabels) as Array<keyof typeof categoryLabels>).map((key) => (
-            <button key={key} onClick={() => setCategory(key as typeof category)} className={`p-3 rounded-[12px] flex flex-col items-center gap-1 transition-colors ${category === key ? 'bg-white/20' : 'bg-white/5 hover:bg-white/10'}`}>
+            <button 
+              key={key} 
+              onClick={() => setCategory(key as typeof category)} 
+              className={`p-3 rounded-[14px] flex flex-col items-center gap-1.5 transition-all active:scale-95 ${category === key ? 'bg-white/20 ring-2 ring-white/30' : 'bg-white/5 hover:bg-white/10'}`}
+            >
               <Target className="w-5 h-5" style={{ color: categoryColors[key] }} />
-              <span className="text-[10px]">{categoryLabels[key]}</span>
+              <span className="text-[9px] text-center leading-tight">{categoryLabels[key]}</span>
             </button>
           ))}
         </div>
       </div>
+
       <div>
-        <label className="text-white/60 text-sm mb-2 block">Дедлайн</label>
-        <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+        <label className="text-white/60 text-sm mb-2 block">Быстрые цели</label>
+        <div className="flex gap-2 overflow-x-auto pb-2 -mx-2 px-2">
+          {quickTargets.map((qt) => (
+            <button
+              key={qt.label}
+              onClick={() => { setTarget(qt.value); setUnit(qt.unit); }}
+              className="px-4 py-2.5 glass-card rounded-[12px] text-sm whitespace-nowrap hover:bg-white/10 transition-colors"
+            >
+              {qt.label}
+            </button>
+          ))}
+        </div>
       </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="text-white/60 text-sm mb-2 block">Цель *</label>
+          <input 
+            type="number" 
+            inputMode="numeric"
+            value={target} 
+            onChange={(e) => setTarget(e.target.value)} 
+            placeholder="100" 
+            className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base font-medium" 
+          />
+        </div>
+        <div>
+          <label className="text-white/60 text-sm mb-2 block">Ед. изм.</label>
+          <select 
+            value={unit} 
+            onChange={(e) => setUnit(e.target.value)}
+            className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base font-medium"
+          >
+            <option value="раз">раз</option>
+            <option value="дней">дней</option>
+            <option value="км">км</option>
+            <option value="кг">кг</option>
+            <option value="₽">₽</option>
+            <option value="часов">часов</option>
+            <option value="страниц">страниц</option>
+          </select>
+        </div>
+      </div>
+
+      <div>
+        <label className="text-white/60 text-sm mb-2 block">Дедлайн (необязательно)</label>
+        <input 
+          type="date" 
+          value={deadline} 
+          onChange={(e) => setDeadline(e.target.value)} 
+          className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base" 
+        />
+      </div>
+
       <div className="flex gap-3 pt-4">
-        <button onClick={onCancel} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
-        <button onClick={handleSubmit} className="flex-1 py-4 bg-[#4DA3FF] rounded-[20px] text-white font-medium">Создать</button>
+        <button 
+          onClick={onCancel} 
+          className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium active:scale-95 transition-transform"
+        >
+          Отмена
+        </button>
+        <button 
+          onClick={handleSubmit} 
+          className="flex-1 py-4 bg-[#4DA3FF] rounded-[20px] text-white font-bold active:scale-95 transition-transform shadow-lg shadow-[#4DA3FF]/30"
+        >
+          Создать
+        </button>
       </div>
     </div>
   );
