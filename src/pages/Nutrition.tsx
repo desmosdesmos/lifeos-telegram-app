@@ -281,6 +281,8 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
   const [isScanning, setIsScanning] = useState(false);
   const [hasFlash, setHasFlash] = useState(false);
   const [flashOn, setFlashOn] = useState(false);
+  const [lastScanned, setLastScanned] = useState<string>('');
+  const [scanSuccess, setScanSuccess] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const [cameraCount, setCameraCount] = useState(0);
 
@@ -351,13 +353,22 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
 
     const onScanSuccess = (decodedText: string) => {
       console.log('✅ Barcode scanned:', decodedText);
+      
+      // Виброотклик (если поддерживается)
+      if (navigator.vibrate) {
+        navigator.vibrate(200);
+      }
 
+      // Останавливаем сканер
       html5QrCode?.stop().then(() => {
         setIsScanning(false);
         setFlashOn(false);
+        setLastScanned(decodedText);
 
         const product = searchByBarcode(decodedText);
         if (product) {
+          // Товар найден в базе
+          setScanSuccess(true);
           setScannedProduct(`${product.name} (${product.store || ''})`);
           const now = new Date();
           const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
@@ -371,8 +382,11 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
           });
           onClose();
         } else {
-          setError(`Штрихкод ${decodedText} не найден в базе. Попробуйте ввести вручную.`);
+          // Товар НЕ найден в базе — показываем что нашли штрихкод
+          setScanSuccess(false);
+          setScannedProduct(`Штрихкод: ${decodedText}`);
           setBarcode(decodedText);
+          setError('Товар не найден в базе. Добавьте вручную или введите КБЖУ.');
         }
       }).catch((err) => {
         console.error('Error stopping scanner:', err);
@@ -467,17 +481,20 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             )}
           </div>
 
-          {error && (
-            <div className="glass-card rounded-[16px] p-3 mb-4 bg-red-500/10 border border-red-500/20">
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-          {scannedProduct && (
+          {/* Success/Error Messages */}
+          {scannedProduct && scanSuccess && (
             <div className="glass-card rounded-[16px] p-3 mb-4 bg-green-500/10 border border-green-500/20">
               <p className="text-green-400 text-sm">✓ Найдено: {scannedProduct}</p>
             </div>
           )}
-          {!isScanning && !error && (
+          {scannedProduct && !scanSuccess && (
+            <div className="glass-card rounded-[16px] p-3 mb-4 bg-[#F59E0B]/10 border border-[#F59E0B]/20">
+              <p className="text-[#F59E0B] text-sm">📦 {scannedProduct}</p>
+              <p className="text-white/40 text-xs mt-1">Товара нет в базе — добавьте вручную</p>
+            </div>
+          )}
+          
+          {!isScanning && !scannedProduct && !error && (
             <p className="text-white/60 mb-4 text-sm">Загрузка камеры...</p>
           )}
           {isScanning && (
@@ -488,18 +505,32 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
               )}
             </>
           )}
-          
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={barcode}
-              onChange={(e) => setBarcode(e.target.value)}
-              placeholder="Или введите код вручную"
-              className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleManualEntry()}
-            />
-            <button onClick={handleManualEntry} className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
-          </div>
+
+          {/* Manual Entry Form */}
+          {(scannedProduct || barcode) && (
+            <div className="space-y-3 mb-4">
+              <div className="glass-card rounded-[16px] p-3 bg-white/5">
+                <p className="text-white/40 text-xs mb-2">Отсканированный код:</p>
+                <p className="text-white font-mono text-lg">{lastScanned || barcode}</p>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={barcode}
+                  onChange={(e) => setBarcode(e.target.value)}
+                  placeholder="Введите код вручную"
+                  className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm"
+                  onKeyDown={(e) => e.key === 'Enter' && handleManualEntry()}
+                />
+                <button 
+                  onClick={handleManualEntry} 
+                  className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm whitespace-nowrap"
+                >
+                  OK
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="glass-card rounded-[16px] p-4 text-left">
             <p className="text-xs text-white/50 mb-2">📌 Инструкция:</p>
@@ -510,7 +541,29 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
               <li>4. Или введите код вручную</li>
             </ol>
           </div>
-          
+
+          {/* Quick Add for Unknown Barcode */}
+          {scannedProduct && !scanSuccess && (
+            <button
+              onClick={() => {
+                const now = new Date();
+                const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                onAdd({
+                  name: `Товар ${lastScanned || barcode}`,
+                  calories: 0,
+                  protein: 0,
+                  fat: 0,
+                  carbs: 0,
+                  time,
+                });
+                onClose();
+              }}
+              className="w-full py-4 bg-white/10 hover:bg-white/15 rounded-[20px] text-white font-medium transition-colors"
+            >
+              ➕ Добавить с нулевыми КБЖУ
+            </button>
+          )}
+
           <p className="text-white/40 text-xs mt-4">✅ База штрихкодов: Пятёрочка, Магнит, Лента, Перекрёсток</p>
         </div>
       </motion.div>
