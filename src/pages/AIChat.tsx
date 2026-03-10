@@ -48,7 +48,15 @@ export function AIChat() {
     setIsTyping(true);
 
     try {
-      // Передаём ВСЕ данные пользователя в AI
+      console.log('Sending message to AI:', text);
+      console.log('User data:', {
+        mealsCount: state.meals.length,
+        sleepDaysCount: state.sleepDays.length,
+        workoutsCount: state.workouts.length,
+        transactionsCount: state.transactions.length,
+        goalsCount: state.goals.length,
+      });
+
       const response = await sendMessage(text, {
         type: 'analysis',
         userData: {
@@ -61,9 +69,18 @@ export function AIChat() {
         },
       });
 
+      console.log('AI response:', response);
       setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
     } catch (error) {
-      setMessages((prev) => [...prev, { type: 'ai', text: 'Произошла ошибка. Попробуйте снова.' }]);
+      console.error('AI Chat error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Неизвестная ошибка';
+      setMessages((prev) => [
+        ...prev,
+        {
+          type: 'ai',
+          text: `❌ Ошибка: ${errorMessage}\n\nПроверьте:\n• Интернет-соединение\n• Доступ к API\n• Попробуйте позже`,
+        },
+      ]);
     } finally {
       setIsTyping(false);
     }

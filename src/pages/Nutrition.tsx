@@ -7,6 +7,7 @@ import { productsDatabase, productCategories, searchProducts } from '../utils/pr
 import { bjuGuide } from '../utils/macroCalculator';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { searchByBarcode } from '../utils/barcodeDatabase';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export function Nutrition() {
   const navigate = useNavigate();
@@ -276,44 +277,92 @@ function AddMealModal({ onClose }: { onClose: () => void }) {
 function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: any) => void }) {
   const [barcode, setBarcode] = useState('');
   const [error, setError] = useState('');
-  const [hasPermission, setHasPermission] = useState(false);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [scannedProduct, setScannedProduct] = useState<string>('');
+  const [isScanning, setIsScanning] = useState(false);
+  const scannerRef = useRef<Html5Qrcode | null>(null);
 
-  const startCamera = async () => {
-    try {
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment' } 
-      });
-      if (videoRef.current) {
-        videoRef.current.srcObject = mediaStream;
-        setStream(mediaStream);
-        setHasPermission(true);
-        setError('');
-      }
-    } catch (err) {
-      console.error('Camera error:', err);
-      setError('Нет доступа к камере. Разрешите доступ или введите код вручную.');
-      setHasPermission(false);
-    }
-  };
-
-  const stopCamera = () => {
-    if (stream) {
-      stream.getTracks().forEach(track => track.stop());
-      setStream(null);
-    }
-  };
-
-  // Start camera on mount
   useEffect(() => {
-    startCamera();
-    return () => stopCamera();
+    const html5QrCode = new Html5Qrcode('scanner-container');
+    scannerRef.current = html5QrCode;
+
+    const config = {
+      fps: 10,
+      qrbox: { width: 250, height: 150 },
+      aspectRatio: 1.7778,
+      disableFlip: false,
+    };
+
+    const startScanning = async () => {
+      try {
+        const cameras = await Html5Qrcode.getCameras();
+        if (cameras && cameras.length > 0) {
+          const backCamera = cameras.find(cam => 
+            cam.label.toLowerCase().includes('back') || 
+            cam.label.toLowerCase().includes('environment') ||
+            cameras[cameras.length - 1]
+          ) || cameras[cameras.length - 1];
+
+          await html5QrCode.start(
+            backCamera.id,
+            config,
+            onScanSuccess,
+            onScanFailure
+          );
+          setIsScanning(true);
+          setError('');
+        } else {
+          setError('Камера не найдена. Используйте ручной ввод.');
+        }
+      } catch (err) {
+        console.error('Camera error:', err);
+        setError('Нет доступа к камере. Разрешите доступ или введите код вручную.');
+      }
+    };
+
+    const onScanSuccess = (decodedText: string) => {
+      console.log('Barcode scanned:', decodedText);
+      
+      html5QrCode.stop().then(() => {
+        setIsScanning(false);
+        
+        const product = searchByBarcode(decodedText);
+        if (product) {
+          setScannedProduct(`${product.name} (${product.store || ''})`);
+          const now = new Date();
+          const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+          onAdd({
+            name: product.name,
+            calories: product.calories,
+            protein: product.protein,
+            fat: product.fat,
+            carbs: product.carbs,
+            time,
+          });
+          onClose();
+        } else {
+          setError(`Штрихкод ${decodedText} не найден в базе. Попробуйте ввести вручную.`);
+          setBarcode(decodedText);
+        }
+      }).catch((err) => {
+        console.error('Error stopping scanner:', err);
+      });
+    };
+
+    const onScanFailure = (_: any) => {
+      // Игнорируем ошибки - нормально когда штрихкод не в рамке
+    };
+
+    startScanning();
+
+    return () => {
+      if (html5QrCode.isScanning) {
+        html5QrCode.stop().catch((err) => console.error('Error stopping scanner:', err));
+      }
+    };
   }, []);
 
   const handleManualEntry = () => {
     if (barcode.trim()) {
-      // Поиск продукта по штрихкоду
       const product = searchByBarcode(barcode);
       if (product) {
         const now = new Date();
@@ -338,40 +387,38 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Сканировать штрихкод</h2>
-          <button onClick={() => { stopCamera(); onClose(); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
+          <button onClick={() => { scannerRef.current?.stop().catch(() => {}); onClose(); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
         <div className="text-center py-4">
-          <div className="w-full h-48 mx-auto mb-4 rounded-[20px] bg-black overflow-hidden relative">
-            <video 
-              ref={videoRef}
-              autoPlay 
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-            {!hasPermission && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-                <div className="text-white/70 text-sm">Камера недоступна</div>
-              </div>
-            )}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-40 h-24 border-2 border-[#22C55E] rounded-lg" />
-            </div>
-          </div>
+          <div 
+            id="scanner-container" 
+            className="w-full mx-auto mb-4 rounded-[20px] overflow-hidden bg-black"
+            style={{ minHeight: '250px' }}
+          />
           {error && (
             <div className="glass-card rounded-[16px] p-3 mb-4 bg-red-500/10 border border-red-500/20">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
-          <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
+          {scannedProduct && (
+            <div className="glass-card rounded-[16px] p-3 mb-4 bg-green-500/10 border border-green-500/20">
+              <p className="text-green-400 text-sm">✓ Найдено: {scannedProduct}</p>
+            </div>
+          )}
+          {!isScanning && !error && (
+            <p className="text-white/60 mb-4 text-sm">Загрузка камеры...</p>
+          )}
+          {isScanning && (
+            <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
+          )}
           <div className="flex gap-2 mb-4">
-            <input 
-              type="number" 
-              value={barcode} 
-              onChange={(e) => setBarcode(e.target.value)} 
-              placeholder="Или введите код" 
+            <input
+              type="text"
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              placeholder="Или введите код вручную"
               className="flex-1 glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm"
-              onKeyDown={(e) => e.key === 'Enter' && handleManualEntry()} 
+              onKeyDown={(e) => e.key === 'Enter' && handleManualEntry()}
             />
             <button onClick={handleManualEntry} className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
           </div>

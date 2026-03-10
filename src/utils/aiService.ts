@@ -1,8 +1,9 @@
 // Groq AI Service
 // API: https://console.groq.com/docs
 // Быстрее Gemini, работает из РФ, бесплатно
+// API ключ хранится в переменной окружения VITE_GROQ_API_KEY
 
-const GROQ_API_KEY = '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';
+const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY || '';
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
 
 export interface AIResponse {
@@ -57,7 +58,7 @@ const systemPrompts = {
 
 // Отправка сообщения в Groq
 export async function sendMessage(
-  message: string, 
+  message: string,
   context: {
     type: 'nutrition' | 'sleep' | 'fitness' | 'finance' | 'goals' | 'analysis';
     userData?: any;
@@ -66,10 +67,14 @@ export async function sendMessage(
 ): Promise<AIResponse> {
   const systemPrompt = systemPrompts[context.type as keyof typeof systemPrompts] || '';
   const prompt = buildPrompt(message, context);
-  
+
   try {
     console.log('Sending to Groq:', prompt.substring(0, 100));
-    
+
+    // Создаём AbortController для timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 секунд timeout
+
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
       headers: {
@@ -87,26 +92,58 @@ export async function sendMessage(
         top_p: 1,
         stream: false,
       }),
+      signal: controller.signal,
     });
 
+    clearTimeout(timeoutId);
     console.log('Groq response status:', response.status);
-    
+
     if (!response.ok) {
-      const errorData = await response.json();
+      let errorData;
+      try {
+        errorData = await response.json();
+      } catch {
+        errorData = { error: 'Не удалось прочитать ответ API' };
+      }
       console.error('Groq API error:', errorData);
-      throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      
+      // Специфичные сообщения об ошибках
+      if (response.status === 401) {
+        throw new Error('Неверный API ключ');
+      } else if (response.status === 429) {
+        throw new Error('Слишком много запросов. Попробуйте позже');
+      } else if (response.status === 500) {
+        throw new Error('Сервер Groq недоступен');
+      } else if (response.status === 0 || response.status === 403) {
+        throw new Error('Нет соединения с сервером (проверьте интернет/CORS)');
+      } else {
+        throw new Error(`Ошибка API: ${response.status} - ${JSON.stringify(errorData)}`);
+      }
     }
 
     const data = await response.json();
     console.log('Groq response data:', data);
-    
-    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
-    
+
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+      console.warn('Unexpected Groq response structure:', data);
+      throw new Error('Некорректный ответ от сервера');
+    }
+
+    const text = data.choices[0].message.content || 'Извините, я не могу ответить сейчас.';
+
     return { text: cleanResponse(text) };
   } catch (error) {
     console.error('Groq API error:', error);
-    return { 
-      text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' + 
+    
+    // Если ошибка отмены (timeout)
+    if (error instanceof Error && error.name === 'AbortError') {
+      return {
+        text: 'Превышено время ожидания ответа. Проверьте интернет и попробуйте снова.'
+      };
+    }
+    
+    return {
+      text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' +
             (error instanceof Error ? error.message : 'Неизвестная ошибка')
     };
   }
