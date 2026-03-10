@@ -279,37 +279,67 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
   const [error, setError] = useState('');
   const [scannedProduct, setScannedProduct] = useState<string>('');
   const [isScanning, setIsScanning] = useState(false);
+  const [hasFlash, setHasFlash] = useState(false);
+  const [flashOn, setFlashOn] = useState(false);
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const [cameraCount, setCameraCount] = useState(0);
 
   useEffect(() => {
-    const html5QrCode = new Html5Qrcode('scanner-container');
-    scannerRef.current = html5QrCode;
+    let html5QrCode: Html5Qrcode | null = null;
 
-    const config = {
-      fps: 10,
-      qrbox: { width: 250, height: 150 },
-      aspectRatio: 1.7778,
-      disableFlip: false,
-    };
-
-    const startScanning = async () => {
+    const initScanner = async () => {
       try {
+        html5QrCode = new Html5Qrcode('scanner-container');
+        scannerRef.current = html5QrCode;
+
         const cameras = await Html5Qrcode.getCameras();
+        console.log('Available cameras:', cameras);
+        setCameraCount(cameras.length);
+
         if (cameras && cameras.length > 0) {
-          const backCamera = cameras.find(cam => 
-            cam.label.toLowerCase().includes('back') || 
-            cam.label.toLowerCase().includes('environment') ||
-            cameras[cameras.length - 1]
-          ) || cameras[cameras.length - 1];
+          // Приоритет: задняя камера по label или последняя в списке
+          let backCameraId = '';
+          
+          // Ищем камеру с "back", "rear", "environment" в названии
+          for (const cam of cameras) {
+            const label = cam.label.toLowerCase();
+            if (label.includes('back') || label.includes('rear') || label.includes('environment') || label.includes('задн')) {
+              backCameraId = cam.id;
+              console.log('Found back camera by label:', cam.label);
+              break;
+            }
+          }
+          
+          // Если не нашли по label, берём последнюю (обычно это задняя)
+          if (!backCameraId) {
+            backCameraId = cameras[cameras.length - 1].id;
+            console.log('Using last camera:', cameras[cameras.length - 1].label);
+          }
+
+          const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 150 },
+            aspectRatio: 1.7778,
+            disableFlip: false,
+            rememberLastUsedCamera: false,
+          };
 
           await html5QrCode.start(
-            backCamera.id,
+            backCameraId,
             config,
             onScanSuccess,
             onScanFailure
           );
+          
           setIsScanning(true);
           setError('');
+          
+          // Проверяем наличие фонарика
+          const track = html5QrCode.getRunningTrackCapabilities();
+          if (track && ('fillLight' in track || 'torch' in track)) {
+            setHasFlash(true);
+            console.log('Flash available');
+          }
         } else {
           setError('Камера не найдена. Используйте ручной ввод.');
         }
@@ -320,11 +350,12 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
     };
 
     const onScanSuccess = (decodedText: string) => {
-      console.log('Barcode scanned:', decodedText);
-      
-      html5QrCode.stop().then(() => {
+      console.log('✅ Barcode scanned:', decodedText);
+
+      html5QrCode?.stop().then(() => {
         setIsScanning(false);
-        
+        setFlashOn(false);
+
         const product = searchByBarcode(decodedText);
         if (product) {
           setScannedProduct(`${product.name} (${product.store || ''})`);
@@ -349,17 +380,32 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
     };
 
     const onScanFailure = (_: any) => {
-      // Игнорируем ошибки - нормально когда штрихкод не в рамке
+      // Игнорируем ошибки сканирования - это нормально
     };
 
-    startScanning();
+    initScanner();
 
     return () => {
-      if (html5QrCode.isScanning) {
+      if (html5QrCode && html5QrCode.isScanning) {
         html5QrCode.stop().catch((err) => console.error('Error stopping scanner:', err));
       }
     };
   }, []);
+
+  const toggleFlash = async () => {
+    try {
+      if (scannerRef.current) {
+        const newState = !flashOn;
+        await scannerRef.current.applyVideoConstraints({
+          advanced: [{ torch: newState }]
+        } as unknown as MediaTrackConstraints);
+        setFlashOn(newState);
+        console.log('Flash', newState ? 'ON' : 'OFF');
+      }
+    } catch (err) {
+      console.error('Flash error:', err);
+    }
+  };
 
   const handleManualEntry = () => {
     if (barcode.trim()) {
@@ -390,11 +436,37 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
           <button onClick={() => { scannerRef.current?.stop().catch(() => {}); onClose(); }} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
         <div className="text-center py-4">
-          <div 
-            id="scanner-container" 
-            className="w-full mx-auto mb-4 rounded-[20px] overflow-hidden bg-black"
-            style={{ minHeight: '250px' }}
-          />
+          <div className="relative w-full mx-auto mb-4 rounded-[20px] overflow-hidden bg-black" style={{ minHeight: '250px' }}>
+            <div
+              id="scanner-container"
+              className="w-full h-full"
+            />
+            
+            {/* Flash Button */}
+            {isScanning && hasFlash && (
+              <button
+                onClick={toggleFlash}
+                className={`absolute top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center transition-all ${flashOn ? 'bg-yellow-500/80' : 'bg-white/20'}`}
+              >
+                <svg className={`w-6 h-6 ${flashOn ? 'text-white' : 'text-white/70'}`} fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M13 2L13 6.09C16.23 6.5 19 9.03 19 12.5C19 15.97 16.23 18.5 13 18.91L13 22L11 22L11 18.91C7.77 18.5 5 15.97 5 12.5C5 9.03 7.77 6.5 11 6.09L11 2L13 2Z"/>
+                </svg>
+              </button>
+            )}
+            
+            {/* Scanning Frame */}
+            {isScanning && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-64 h-40 border-2 border-[#22C55E]/70 rounded-lg relative">
+                  <div className="absolute top-0 left-0 w-4 h-4 border-t-4 border-l-4 border-[#22C55E] -mt-0.5 -ml-0.5" />
+                  <div className="absolute top-0 right-0 w-4 h-4 border-t-4 border-r-4 border-[#22C55E] -mt-0.5 -mr-0.5" />
+                  <div className="absolute bottom-0 left-0 w-4 h-4 border-b-4 border-l-4 border-[#22C55E] -mb-0.5 -ml-0.5" />
+                  <div className="absolute bottom-0 right-0 w-4 h-4 border-b-4 border-r-4 border-[#22C55E] -mb-0.5 -mr-0.5" />
+                </div>
+              </div>
+            )}
+          </div>
+
           {error && (
             <div className="glass-card rounded-[16px] p-3 mb-4 bg-red-500/10 border border-red-500/20">
               <p className="text-red-400 text-sm">{error}</p>
@@ -409,8 +481,14 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             <p className="text-white/60 mb-4 text-sm">Загрузка камеры...</p>
           )}
           {isScanning && (
-            <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
+            <>
+              <p className="text-white/60 mb-4 text-sm">Наведите камеру на штрихкод</p>
+              {cameraCount > 0 && (
+                <p className="text-white/40 text-xs mb-2">Камер найдено: {cameraCount}</p>
+              )}
+            </>
           )}
+          
           <div className="flex gap-2 mb-4">
             <input
               type="text"
@@ -422,15 +500,17 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
             />
             <button onClick={handleManualEntry} className="px-4 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium text-sm">OK</button>
           </div>
+
           <div className="glass-card rounded-[16px] p-4 text-left">
             <p className="text-xs text-white/50 mb-2">📌 Инструкция:</p>
             <ol className="text-xs text-white/40 space-y-1">
               <li>1. Разрешите доступ к камере</li>
-              <li>2. Наведите штрихкод в рамку</li>
+              <li>2. Наведите штрихкод в зелёную рамку</li>
               <li>3. Продукт добавится автоматически</li>
               <li>4. Или введите код вручную</li>
             </ol>
           </div>
+          
           <p className="text-white/40 text-xs mt-4">✅ База штрихкодов: Пятёрочка, Магнит, Лента, Перекрёсток</p>
         </div>
       </motion.div>
