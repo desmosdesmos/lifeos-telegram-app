@@ -8,7 +8,8 @@ import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } f
 import { 
   parseCSV, 
   parseSMS, 
-  parseScreenshot, 
+  parseScreenshot,
+  parsePDF,
   bankFormats, 
   previewImport,
   type ImportedTransaction,
@@ -318,7 +319,7 @@ function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (
 }
 
 function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t: ImportedTransaction[]) => void }) {
-  const [method, setMethod] = useState<'csv' | 'sms' | 'screenshot'>('csv');
+  const [method, setMethod] = useState<'csv' | 'pdf' | 'sms' | 'screenshot'>('pdf');
   const [selectedBank, setSelectedBank] = useState('sberbank');
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
@@ -326,6 +327,21 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
   const [smsText, setSmsText] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
+
+  const handlePDFUpload = async (file: File) => {
+    setIsLoading(true);
+    setError('');
+    try {
+      const transactions = await parsePDF(file);
+      const previewData = previewImport(transactions);
+      setPreview(previewData);
+    } catch (err) {
+      setError('Не удалось распарсить PDF. Убедитесь, что это выписка из банка.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleCSVUpload = async (file: File) => {
     setIsLoading(true);
@@ -402,6 +418,13 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
           <>
             <div className="flex gap-2 mb-6">
               <button
+                onClick={() => setMethod('pdf')}
+                className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'pdf' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
+              >
+                <FileText className="w-4 h-4" />
+                PDF
+              </button>
+              <button
                 onClick={() => setMethod('csv')}
                 className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'csv' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
               >
@@ -423,6 +446,44 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
                 Скрин
               </button>
             </div>
+
+            {/* PDF Метод */}
+            {method === 'pdf' && (
+              <div className="space-y-4">
+                <div className="glass-card rounded-[16px] p-4 border-2 border-dashed border-white/20 text-center">
+                  <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
+                  <p className="text-sm text-white/70 mb-2">Загрузите PDF выписку</p>
+                  <p className="text-xs text-white/40 mb-4">Выписка о движении денежных средств из банка</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf"
+                    onChange={(e) => e.target.files?.[0] && handlePDFUpload(e.target.files[0])}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="px-4 py-2 bg-[#4DA3FF] rounded-[12px] text-white text-sm font-medium"
+                  >
+                    Выбрать PDF
+                  </button>
+                </div>
+
+                <div className="glass-card rounded-[16px] p-4">
+                  <p className="text-xs text-white/50 mb-2">📌 Как получить PDF выписку:</p>
+                  <ol className="text-xs text-white/40 space-y-1">
+                    <li>• Сбербанк: Платёж → История → Справка → PDF</li>
+                    <li>• Тинькофф: История → Справка → Выписка → PDF</li>
+                    <li>• Альфа: История → Справка → Операции → PDF</li>
+                    <li>• ВТБ: История → Выписка → PDF</li>
+                  </ol>
+                </div>
+
+                <div className="glass-card rounded-[16px] p-3 bg-[#22C55E]/10 border border-[#22C55E]/20">
+                  <p className="text-[#22C55E] text-xs">✓ PDF автоматически распознаёт банк и форматирует транзакции</p>
+                </div>
+              </div>
+            )}
 
             {/* CSV Метод */}
             {method === 'csv' && (

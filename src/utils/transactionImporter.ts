@@ -1,8 +1,12 @@
 // Импорт транзакций из различных источников
-// Поддержка: CSV, SMS, скриншотов (OCR)
+// Поддержка: CSV, PDF, SMS, скриншотов (OCR)
 
 import Papa from 'papaparse';
 import Tesseract from 'tesseract.js';
+import * as PDFJS from 'pdfjs-dist';
+
+// Настройка worker для PDF.js
+PDFJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
 
 export interface ImportedTransaction {
   name: string;
@@ -11,6 +15,258 @@ export interface ImportedTransaction {
   category: string;
   date: string;
   source?: string;
+}
+
+// ============================================
+// PDF Импорт (выписки из банков)
+// ============================================
+
+export async function parsePDF(
+  file: File
+): Promise<ImportedTransaction[]> {
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
+    
+    let fullText = '';
+    
+    // Извлекаем текст из всех страниц
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map((item: any) => item.str).join(' ');
+      fullText += pageText + '\n';
+    }
+    
+    console.log('PDF text:', fullText.substring(0, 500));
+    
+    // Определяем банк по содержимому
+    const detectedBank = detectBankFromPDF(fullText);
+    
+    // Парсим в зависимости от банка
+    switch (detectedBank) {
+      case 'sberbank':
+        return parseSberbankPDF(fullText);
+      case 'tinkoff':
+        return parseTinkoffPDF(fullText);
+      case 'alfa':
+        return parseAlfaPDF(fullText);
+      case 'vtb':
+        return parseVTBPDF(fullText);
+      default:
+        return parseGenericPDF(fullText);
+    }
+  } catch (error) {
+    console.error('PDF parse error:', error);
+    throw new Error('Не удалось распарсить PDF файл');
+  }
+}
+
+function detectBankFromPDF(text: string): string {
+  const lowerText = text.toLowerCase();
+  
+  if (lowerText.includes('сбербанк') || lowerText.includes('sberbank')) return 'sberbank';
+  if (lowerText.includes('тинькофф') || lowerText.includes('tinkoff')) return 'tinkoff';
+  if (lowerText.includes('альфа') || lowerText.includes('alfa')) return 'alfa';
+  if (lowerText.includes('втб') || lowerText.includes('vtb')) return 'vtb';
+  
+  return 'auto';
+}
+
+// Парсинг выписки Сбербанка
+function parseSberbankPDF(text: string): ImportedTransaction[] {
+  const transactions: ImportedTransaction[] = [];
+  
+  // Паттерн: Дата | Описание | Сумма | Баланс
+  // Пример: 12.03.2024 | ПЯТЕРОЧКА | -1 234.56 | 45 678.90
+  
+  const transactionPattern = /(\d{2}\.\d{2}\.\d{2,4})\s*\|?\s*(.+?)\s*\|?\s*([+-]?\d[\d\s.,]*)\s*(RUB|₽|руб|рублей)?/gi;
+  
+  let match;
+  while ((match = transactionPattern.exec(text)) !== null) {
+    const date = parseDate(match[1], 'DD.MM.YYYY');
+    const name = match[2].trim();
+    const amountStr = match[3].replace(/\s/g, '').replace(',', '.');
+    const amount = Math.abs(parseFloat(amountStr) || 0);
+    const isIncome = !match[0].includes('-') && (match[0].includes('+') || match[0].includes('Пополнение'));
+    
+    // Пропускаем заголовки и технические записи
+    if (name.toLowerCase().includes('дата') || name.toLowerCase().includes('баланс')) continue;
+    if (amount === 0) continue;
+    
+    transactions.push({
+      name: cleanTransactionName(name),
+      amount,
+      type: isIncome ? 'income' : 'expense',
+      category: categorizeTransaction(name, ''),
+      date,
+      source: 'sberbank_pdf',
+    });
+  }
+  
+  return transactions;
+}
+
+// Парсинг выписки Тинькофф
+function parseTinkoffPDF(text: string): ImportedTransaction[] {
+  const transactions: ImportedTransaction[] = [];
+  
+  // Тинькофф часто использует формат:
+  // Дата | Категория | Описание | Сумма
+  
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+  
+  for (const line of lines) {
+    // Ищем дату в начале строки
+    const dateMatch = line.match(/(\d{2}\.\d{2}\.\d{4})/);
+    if (!dateMatch) continue;
+    
+    const date = parseDate(dateMatch[1], 'DD.MM.YYYY');
+    
+    // Ищем сумму с валютой
+    const amountMatch = line.match(/([+-]?\d[\d\s.,]*)\s*(₽|RUB|руб)/i);
+    if (!amountMatch) continue;
+    
+    const amountStr = amountMatch[1].replace(/\s/g, '').replace(',', '.');
+    const amount = Math.abs(parseFloat(amountStr) || 0);
+    if (amount === 0) continue;
+    
+    const isIncome = amountMatch[0].includes('+') || line.includes('Пополнение') || line.includes('Перевод от');
+    
+    // Извлекаем название (всё между датой и суммой)
+    const nameStart = dateMatch.index !== undefined ? dateMatch.index + dateMatch[0].length : 0;
+    const nameEnd = amountMatch.index;
+    let name = line.substring(nameStart, nameEnd).trim().replace(/[|]/g, '').trim();
+    
+    if (!name || name.length < 2) continue;
+    
+    transactions.push({
+      name: cleanTransactionName(name),
+      amount,
+      type: isIncome ? 'income' : 'expense',
+      category: categorizeTransaction(name, ''),
+      date,
+      source: 'tinkoff_pdf',
+    });
+  }
+  
+  return transactions;
+}
+
+// Парсинг выписки Альфа-Банка
+function parseAlfaPDF(text: string): ImportedTransaction[] {
+  const transactions: ImportedTransaction[] = [];
+  
+  // Альфа использует форматы типа:
+  // 12.03.2024 Оплата -2 500.00 ₽
+  
+  const pattern = /(\d{2}\.\d{2}\.\d{4})\s*(.+?)\s*([+-]?\d[\d\s.,]*)\s*(₽|RUB|руб)/gi;
+  
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const date = parseDate(match[1], 'DD.MM.YYYY');
+    const name = match[2].trim();
+    const amountStr = match[3].replace(/\s/g, '').replace(',', '.');
+    const amount = Math.abs(parseFloat(amountStr) || 0);
+    
+    if (amount === 0 || name.toLowerCase().includes('счёт') || name.toLowerCase().includes('карт')) continue;
+    
+    const isIncome = match[0].includes('+') || !match[0].includes('-');
+    
+    transactions.push({
+      name: cleanTransactionName(name),
+      amount,
+      type: isIncome ? 'income' : 'expense',
+      category: categorizeTransaction(name, ''),
+      date,
+      source: 'alfa_pdf',
+    });
+  }
+  
+  return transactions;
+}
+
+// Парсинг выписки ВТБ
+function parseVTBPDF(text: string): ImportedTransaction[] {
+  const transactions: ImportedTransaction[] = [];
+  
+  // ВТБ формат: Дата | Сумма | Описание
+  
+  const pattern = /(\d{2}\.\d{2}\.\d{4})\s*\|?\s*([+-]?\d[\d\s.,]*)\s*(₽|RUB|руб)?\s*\|?\s*(.+?)(?:\||$)/gi;
+  
+  let match;
+  while ((match = pattern.exec(text)) !== null) {
+    const date = parseDate(match[1], 'DD.MM.YYYY');
+    const amountStr = match[2].replace(/\s/g, '').replace(',', '.');
+    const amount = Math.abs(parseFloat(amountStr) || 0);
+    const name = match[4].trim();
+    
+    if (amount === 0 || name.toLowerCase().includes('дата')) continue;
+    
+    const isIncome = match[0].includes('+') || !match[0].includes('-');
+    
+    transactions.push({
+      name: cleanTransactionName(name),
+      amount,
+      type: isIncome ? 'income' : 'expense',
+      category: categorizeTransaction(name, ''),
+      date,
+      source: 'vtb_pdf',
+    });
+  }
+  
+  return transactions;
+}
+
+// Универсальный парсер PDF
+function parseGenericPDF(text: string): ImportedTransaction[] {
+  const transactions: ImportedTransaction[] = [];
+  
+  // Ищем все суммы с валютой
+  const amountPattern = /([+-]?\d[\d\s.,]*)\s*(₽|RUB|руб|рублей)/gi;
+  const datePattern = /(\d{2}\.\d{2}\.\d{2,4})/;
+  
+  let amountMatch;
+  const foundAmounts: Array<{index: number; amount: number; isIncome: boolean}> = [];
+  
+  while ((amountMatch = amountPattern.exec(text)) !== null) {
+    const amountStr = amountMatch[1].replace(/\s/g, '').replace(',', '.');
+    const amount = Math.abs(parseFloat(amountStr) || 0);
+    if (amount > 0) {
+      foundAmounts.push({
+        index: amountMatch.index,
+        amount,
+        isIncome: amountMatch[0].includes('+') || !amountMatch[0].includes('-'),
+      });
+    }
+  }
+  
+  // Для каждой суммы ищем дату поблизости
+  for (const found of foundAmounts) {
+    const contextStart = Math.max(0, found.index - 50);
+    const contextEnd = found.index + 30;
+    const context = text.substring(contextStart, contextEnd);
+    
+    const dateMatch = context.match(datePattern);
+    const date = dateMatch ? parseDate(dateMatch[1], 'DD.MM.YYYY') : new Date().toISOString().split('T')[0];
+    
+    // Извлекаем название из контекста
+    const nameStart = dateMatch && dateMatch.index !== undefined ? dateMatch.index + dateMatch[0].length : contextStart;
+    const name = text.substring(nameStart, found.index).trim().replace(/[|]/g, '').substring(0, 50);
+    
+    if (name.length > 2) {
+      transactions.push({
+        name: cleanTransactionName(name),
+        amount: found.amount,
+        type: found.isIncome ? 'income' : 'expense',
+        category: categorizeTransaction(name, ''),
+        date,
+        source: 'pdf',
+      });
+    }
+  }
+  
+  return transactions;
 }
 
 // ============================================
