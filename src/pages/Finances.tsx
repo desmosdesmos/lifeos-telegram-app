@@ -342,11 +342,13 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
     setIsLoading(true);
     setError('');
     try {
+      console.log('Uploading screenshot:', file.name, file.size);
       const transactions = await parseScreenshot(file);
+      console.log('Parsed transactions:', transactions.length);
       const previewData = previewImport(transactions);
       setPreview(previewData);
-    } catch (err) {
-      setError('Не удалось распознать текст. Попробуйте более чёткий скриншот.');
+    } catch (err: any) {
+      setError(err.message || 'Не удалось распознать текст. Попробуйте более чёткий скриншот.');
       console.error(err);
     } finally {
       setIsLoading(false);

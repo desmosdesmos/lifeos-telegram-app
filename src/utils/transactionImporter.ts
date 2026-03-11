@@ -25,40 +25,48 @@ export async function parsePDF(
   file: File
 ): Promise<ImportedTransaction[]> {
   try {
+    console.log('Parsing PDF:', file.name, file.size);
+
     const arrayBuffer = await file.arrayBuffer();
-    
+
     // Загружаем worker локально или с CDN
     if (!PDFJS.GlobalWorkerOptions.workerSrc) {
       PDFJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
     }
-    
+
+    console.log('Loading PDF document...');
     const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
-    
+
     console.log('PDF pages:', pdf.numPages);
-    
+
     let fullText = '';
-    
-    // Извлекаем текст из всех страниц
+
+    // Извлекаем текст из всех страниц с таймаутом
     for (let i = 1; i <= pdf.numPages; i++) {
-      const page = await pdf.getPage(i);
-      const textContent = await page.getTextContent();
-      const pageText = textContent.items.map((item: any) => item.str).join(' ');
-      fullText += pageText + '\n';
-      console.log(`Page ${i} text:`, pageText.substring(0, 200));
+      console.log('Processing page', i);
+      try {
+        const page = await pdf.getPage(i);
+        const textContent = await page.getTextContent();
+        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        fullText += pageText + '\n';
+        console.log(`Page ${i} text length:`, pageText.length);
+      } catch (pageError) {
+        console.error('Error processing page', i, pageError);
+      }
     }
-    
+
     console.log('Full PDF text length:', fullText.length);
-    console.log('Full PDF text:', fullText.substring(0, 1000));
-    
-    // Если текст не извлёкся, пробуем OCR
+    console.log('Full PDF text preview:', fullText.substring(0, 500));
+
+    // Если текст не извлёкся, пробуем сообщить об ошибке
     if (fullText.trim().length < 50) {
-      throw new Error('PDF не содержит текстового слоя. Это может быть скан изображения.');
+      throw new Error('PDF не содержит текстового слоя. Это может быть скан изображения. Попробуйте загрузить как скриншот.');
     }
-    
+
     // Определяем банк по содержимому
     const detectedBank = detectBankFromPDF(fullText);
     console.log('Detected bank:', detectedBank);
-    
+
     // Парсим в зависимости от банка
     let transactions: ImportedTransaction[] = [];
     switch (detectedBank) {
@@ -78,13 +86,13 @@ export async function parsePDF(
         transactions = parseGenericPDF(fullText);
         break;
     }
-    
+
     console.log('Parsed transactions:', transactions.length);
-    
+
     if (transactions.length === 0) {
-      throw new Error('Не найдено транзакций в PDF. Убедитесь, что это выписка с операциями.');
+      throw new Error('Не найдено транзакций в PDF. Убедитесь, что это выписка с операциями, а не просто баланс.');
     }
-    
+
     return transactions;
   } catch (error: any) {
     console.error('PDF parse error:', error);
@@ -689,25 +697,49 @@ export async function parseScreenshot(
   imageFile: File
 ): Promise<ImportedTransaction[]> {
   try {
+    console.log('Starting OCR on image:', imageFile.name, imageFile.size);
+    
     const result = await Tesseract.recognize(imageFile, 'rus+eng', {
-      logger: (m) => console.log('OCR progress:', m),
+      logger: (m) => console.log('OCR progress:', m.status, m.progress),
     });
-    
+
     const text = result.data.text;
-    console.log('OCR result:', text);
+    console.log('OCR result text:', text);
+
+    // Ищем все суммы с валютой напрямую
+    const transactions: ImportedTransaction[] = [];
+    const amountPattern = /([+-]?\d[\d\s.,]*)\s*(руб|₽|RUB|рублей)/gi;
+    const matches = [...text.matchAll(amountPattern)];
     
-    // Парсим распознанный текст как SMS
-    const transactions = parseSMS([{ text }]);
-    
-    // Если не нашли, пробуем найти числа с валютой
-    if (transactions.length === 0) {
-      const amountMatches = text.matchAll(/([+-]?\d[\d\s.,]*)\s*(руб|₽|RUB|рублей)/gi);
-      for (const match of amountMatches) {
-        const amount = Math.abs(parseFloat(match[1].replace(/\s/g, '').replace(',', '.')));
-        const isIncome = match[0].includes('+') || text.includes('Пополнение');
-        
+    console.log('Found amount matches:', matches.length);
+
+    for (const match of matches) {
+      const amountStr = match[1].replace(/\s/g, '').replace(',', '.');
+      const amount = Math.abs(parseFloat(amountStr) || 0);
+      
+      if (amount === 0) continue;
+      
+      const isIncome = match[0].includes('+') || text.includes('Пополнение') || text.includes('Перевод от');
+      
+      // Пытаемся найти название поблизости
+      const contextStart = Math.max(0, match.index! - 50);
+      const contextEnd = match.index! + 50;
+      const context = text.substring(contextStart, contextEnd);
+      
+      // Удаляем сумму и дату из контекста
+      let name = context
+        .replace(amountPattern, '')
+        .replace(/\d{2}\.\d{2}\.\d{2,4}/g, '')
+        .replace(/[+]/g, '')
+        .trim()
+        .substring(0, 50) || 'Транзакция';
+      
+      // Очищаем от мусора
+      name = name.replace(/[*_|[\]()]/g, '').replace(/\s+/g, ' ').trim();
+      
+      if (name.length > 2) {
         transactions.push({
-          name: 'Транзакция (скриншот)',
+          name,
           amount,
           type: isIncome ? 'income' : 'expense',
           category: 'Другое',
@@ -716,11 +748,17 @@ export async function parseScreenshot(
         });
       }
     }
-    
+
+    console.log('Parsed transactions from OCR:', transactions.length);
+
+    if (transactions.length === 0) {
+      throw new Error('Не найдено сумм с валютой на изображении. Попробуйте более чёткий скриншот.');
+    }
+
     return transactions;
   } catch (error) {
     console.error('OCR error:', error);
-    throw new Error('Не удалось распознать текст с изображения');
+    throw new Error('Не удалось распознать текст с изображения: ' + (error instanceof Error ? error.message : 'Unknown error'));
   }
 }
 
