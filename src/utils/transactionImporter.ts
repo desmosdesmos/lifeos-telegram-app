@@ -5,8 +5,8 @@ import Papa from 'papaparse';
 import Tesseract from 'tesseract.js';
 import * as PDFJS from 'pdfjs-dist';
 
-// Настройка worker для PDF.js - используем jsdelivr CDN
-const PDF_WORKER_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+// Настройка worker для PDF.js - используем последнюю стабильную версию
+const PDF_WORKER_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.8.69/build/pdf.worker.min.js';
 PDFJS.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
 
 export interface ImportedTransaction {
