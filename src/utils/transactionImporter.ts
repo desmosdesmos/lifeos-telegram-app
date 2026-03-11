@@ -5,8 +5,9 @@ import Papa from 'papaparse';
 import Tesseract from 'tesseract.js';
 import * as PDFJS from 'pdfjs-dist';
 
-// Настройка worker для PDF.js
-PDFJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+// Настройка worker для PDF.js - используем актуальную версию
+const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+PDFJS.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
 
 export interface ImportedTransaction {
   name: string;
@@ -28,11 +29,6 @@ export async function parsePDF(
     console.log('Parsing PDF:', file.name, file.size);
 
     const arrayBuffer = await file.arrayBuffer();
-
-    // Загружаем worker локально или с CDN
-    if (!PDFJS.GlobalWorkerOptions.workerSrc) {
-      PDFJS.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
-    }
 
     console.log('Loading PDF document...');
     const pdf = await PDFJS.getDocument({ data: arrayBuffer }).promise;
