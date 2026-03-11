@@ -112,70 +112,55 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (через Hugging Face Inference API - LLaVA)
+// Анализ еды по фото (через Gemini 2.0 Flash - бесплатно)
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // Бесплатный API от Hugging Face с моделью LLaVA
-  // Модель: llava-hf/llava-1.5-7b-hf
-  const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
+  // Используем Gemini 2.0 Flash - бесплатная модель с поддержкой изображений
+  const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
+  const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
 
-  const prompt = `Analyze this food dish. Determine:
-1. What dish is this
-2. Approximate portion size in grams
-3. Calories, protein, fat, carbs per portion
-
-Answer in Russian in this format:
+  const prompt = `Analyze this food. Reply in Russian:
 Блюдо: [название]
 Вес: [граммы]г
 Калории: [число] ккал
 Белки: [число]г
 Жиры: [число]г
 Углеводы: [число]г
-
-Brief comment on healthiness.`;
+Комментарий:`;
 
   try {
-    // Извлекаем base64 без префикса
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
       : imageBase64;
 
-    console.log('Sending image to Hugging Face LLaVA, size:', base64Data.length);
+    console.log('Sending to Gemini 2.0, size:', base64Data.length);
 
-    const response = await fetch(HF_API_URL, {
+    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        inputs: `USER: <image>${prompt}\nASSISTANT:`,
-        image: base64Data,
+        contents: [{
+          parts: [
+            { text: prompt },
+            { inline_data: { mime_type: 'image/jpeg', data: base64Data } }
+          ]
+        }]
       }),
     });
 
-    console.log('HF LLaVA response status:', response.status);
+    console.log('Gemini status:', response.status);
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      console.error('HF LLaVA API error:', errorData);
-      throw new Error(`HF API error: ${response.status}`);
+      const error = await response.json().catch(() => ({}));
+      console.error('Gemini error:', error);
+      throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('HF LLaVA response:', data);
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать.';
 
-    // LLaVA возвращает массив [{ generated_text: "..." }]
-    const text = Array.isArray(data) 
-      ? data[0]?.generated_text || 'Не удалось проанализировать изображение.'
-      : data?.generated_text || 'Не удалось проанализировать изображение.';
-
-    // Убираем промпт из ответа
-    const cleanText = text.replace(/USER:.*?ASSISTANT:/s, '').trim();
-
-    const nutrition = parseNutrition(cleanText);
-
-    return { text: cleanResponse(cleanText), nutrition };
+    return { text: cleanResponse(text), nutrition: parseNutrition(text) };
   } catch (error) {
-    console.error('HF LLaVA API error:', error);
+    console.error('Gemini error:', error);
     throw error;
   }
 }
