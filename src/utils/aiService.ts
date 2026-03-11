@@ -137,7 +137,9 @@ ASSISTANT:`;
       : imageBase64;
 
     console.log('Sending to HF LLaVA, size:', base64Data.length);
+    console.log('HF Token exists:', !!HF_TOKEN);
 
+    // Отправляем изображение в base64 формате
     const response = await fetch(HF_API_URL, {
       method: 'POST',
       headers: {
@@ -148,25 +150,24 @@ ASSISTANT:`;
         inputs: prompt,
         parameters: {
           max_new_tokens: 200,
-          temperature: 0.7,
         },
+        image: base64Data,
       }),
     });
 
     console.log('HF LLaVA status:', response.status);
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      console.error('HF error:', error);
+      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+      console.error('HF error details:', error);
       
-      // Если модель загружается (503), ждём
       if (response.status === 503) {
         throw new Error('Модель загружается (~30 сек). Попробуйте ещё раз.');
       }
-      if (response.status === 401) {
-        throw new Error('Неверный HF токен. Получите на huggingface.co/settings/tokens');
+      if (response.status === 401 || response.status === 403) {
+        throw new Error('Неверный токен HF. Проверьте настройки в Vercel.');
       }
-      throw new Error(`API error: ${response.status}`);
+      throw new Error(`API error: ${response.status} - ${JSON.stringify(error)}`);
     }
 
     const data = await response.json();
@@ -176,12 +177,11 @@ ASSISTANT:`;
       ? data[0]?.generated_text || 'Не удалось проанализировать.'
       : data?.generated_text || 'Не удалось проанализировать.';
 
-    // Убираем промпт, оставляем только ответ
     const answer = text.split('ASSISTANT:').pop()?.trim() || text;
 
     return { text: cleanResponse(answer), nutrition: parseNutrition(answer) };
   } catch (error) {
-    console.error('HF error:', error);
+    console.error('HF LLaVA error:', error);
     throw error;
   }
 }
