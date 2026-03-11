@@ -431,6 +431,9 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const safePhotos = photos || [];
+  
+  // Определяем iOS устройство
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -488,6 +491,19 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
         {/* Add Photo Section */}
         <div className="glass-card rounded-[20px] p-4 mb-6">
           <h3 className="text-lg mb-4">Добавить фото</h3>
+          
+          {isIOS && (
+            <div className="mb-4 p-3 bg-[#F59E0B]/20 border border-[#F59E0B]/30 rounded-[16px]">
+              <p className="text-[#F59E0B] text-xs">
+                ⚠️ На iOS Telegram может блокировать загрузку фото.
+              </p>
+              <p className="text-white/60 text-xs mt-1">
+                Откройте приложение в Safari: 
+                <span className="text-[#4DA3FF] underline ml-1">life-os-seven-khaki.vercel.app</span>
+              </p>
+            </div>
+          )}
+          
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <button 
