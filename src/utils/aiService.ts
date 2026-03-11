@@ -116,7 +116,7 @@ export async function sendMessage(
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
   // Используем Gemini для анализа изображений
   const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
+  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
 
   const prompt = `Проанализируй это блюдо. Определи:
 1. Что это за блюдо
