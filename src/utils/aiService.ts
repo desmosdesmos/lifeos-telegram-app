@@ -112,12 +112,13 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (Hugging Face Inference API - LLaVA)
+// Анализ еды по фото (Hugging Face через CORS прокси)
 // Работает в РФ без VPN, бесплатно
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // HF токен из env: https://huggingface.co/settings/tokens
   const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || '';
+  // Используем прокси для обхода CORS
   const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
+  const CORS_PROXY = 'https://corsproxy.io/?';
 
   const prompt = `USER: <image>What is this food? Estimate calories, protein, fat, carbs.
 Answer in Russian format:
@@ -136,21 +137,18 @@ ASSISTANT:`;
       ? imageBase64.split(',')[1] 
       : imageBase64;
 
-    console.log('Sending to HF LLaVA, size:', base64Data.length);
-    console.log('HF Token exists:', !!HF_TOKEN);
+    console.log('Sending to HF LLaVA via CORS proxy, size:', base64Data.length);
 
-    // Отправляем изображение в base64 формате
-    const response = await fetch(HF_API_URL, {
+    const response = await fetch(CORS_PROXY + encodeURIComponent(HF_API_URL), {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
       },
       body: JSON.stringify({
         inputs: prompt,
-        parameters: {
-          max_new_tokens: 200,
-        },
+        parameters: { max_new_tokens: 200 },
         image: base64Data,
       }),
     });
@@ -159,29 +157,20 @@ ASSISTANT:`;
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('HF error details:', error);
+      console.error('HF error:', error);
       
-      if (response.status === 503) {
-        throw new Error('Модель загружается (~30 сек). Попробуйте ещё раз.');
-      }
-      if (response.status === 401 || response.status === 403) {
-        throw new Error('Неверный токен HF. Проверьте настройки в Vercel.');
-      }
-      throw new Error(`API error: ${response.status} - ${JSON.stringify(error)}`);
+      if (response.status === 503) throw new Error('Модель загружается (~30 сек). Попробуйте ещё раз.');
+      if (response.status === 401 || response.status === 403) throw new Error('Неверный токен HF.');
+      throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('HF response:', data);
-
-    const text = Array.isArray(data) 
-      ? data[0]?.generated_text || 'Не удалось проанализировать.'
-      : data?.generated_text || 'Не удалось проанализировать.';
-
+    const text = Array.isArray(data) ? data[0]?.generated_text || 'Не удалось.' : data?.generated_text || 'Не удалось.';
     const answer = text.split('ASSISTANT:').pop()?.trim() || text;
 
     return { text: cleanResponse(answer), nutrition: parseNutrition(answer) };
   } catch (error) {
-    console.error('HF LLaVA error:', error);
+    console.error('HF error:', error);
     throw error;
   }
 }
