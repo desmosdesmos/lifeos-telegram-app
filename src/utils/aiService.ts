@@ -112,18 +112,18 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (через Gemini Vision)
+// Анализ еды по фото (через Hugging Face Inference API - LLaVA)
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // Используем Gemini для анализа изображений
-  const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  // Бесплатный API от Hugging Face с моделью LLaVA
+  // Модель: llava-hf/llava-1.5-7b-hf
+  const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
 
-  const prompt = `Проанализируй это блюдо. Определи:
-1. Что это за блюдо
-2. Примерный вес порции
-3. КБЖУ на порцию (калории, белки, жиры, углеводы)
+  const prompt = `Analyze this food dish. Determine:
+1. What dish is this
+2. Approximate portion size in grams
+3. Calories, protein, fat, carbs per portion
 
-Ответ дай в формате:
+Answer in Russian in this format:
 Блюдо: [название]
 Вес: [граммы]г
 Калории: [число] ккал
@@ -131,58 +131,51 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
 Жиры: [число]г
 Углеводы: [число]г
 
-Краткий комментарий по полезности.`;
+Brief comment on healthiness.`;
 
   try {
-    // Извлекаем base64 без data:image префикса
+    // Извлекаем base64 без префикса
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
       : imageBase64;
 
-    console.log('Sending image to Gemini, size:', base64Data.length);
+    console.log('Sending image to Hugging Face LLaVA, size:', base64Data.length);
 
-    const response = await fetch(`${API_URL_VISION}?key=${API_KEY}`, {
+    const response = await fetch(HF_API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: 'image/jpeg',
-                data: base64Data,
-              },
-            },
-          ],
-        }],
-        generationConfig: {
-          temperature: 0.5,
-          maxOutputTokens: 500,
-        },
+        inputs: `USER: <image>${prompt}\nASSISTANT:`,
+        image: base64Data,
       }),
     });
 
-    console.log('Gemini response status:', response.status);
+    console.log('HF LLaVA response status:', response.status);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Gemini Vision API error:', errorData);
-      throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error('HF LLaVA API error:', errorData);
+      throw new Error(`HF API error: ${response.status}`);
     }
 
     const data = await response.json();
-    console.log('Gemini response:', data);
+    console.log('HF LLaVA response:', data);
 
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать изображение.';
+    // LLaVA возвращает массив [{ generated_text: "..." }]
+    const text = Array.isArray(data) 
+      ? data[0]?.generated_text || 'Не удалось проанализировать изображение.'
+      : data?.generated_text || 'Не удалось проанализировать изображение.';
 
-    const nutrition = parseNutrition(text);
+    // Убираем промпт из ответа
+    const cleanText = text.replace(/USER:.*?ASSISTANT:/s, '').trim();
 
-    return { text: cleanResponse(text), nutrition };
+    const nutrition = parseNutrition(cleanText);
+
+    return { text: cleanResponse(cleanText), nutrition };
   } catch (error) {
-    console.error('Gemini Image API error:', error);
+    console.error('HF LLaVA API error:', error);
     throw error;
   }
 }
