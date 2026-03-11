@@ -112,13 +112,11 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (Hugging Face через CORS прокси)
+// Анализ еды по фото (Hugging Face через allorigins прокси)
 // Работает в РФ без VPN, бесплатно
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
   const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || '';
-  // Используем прокси для обхода CORS
   const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
-  const CORS_PROXY = 'https://corsproxy.io/?';
 
   const prompt = `USER: <image>What is this food? Estimate calories, protein, fat, carbs.
 Answer in Russian format:
@@ -133,18 +131,17 @@ Answer in Russian format:
 ASSISTANT:`;
 
   try {
-    const base64Data = imageBase64.includes(',') 
-      ? imageBase64.split(',')[1] 
-      : imageBase64;
+    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
+    console.log('Sending to HF via allorigins, size:', base64Data.length);
 
-    console.log('Sending to HF LLaVA via CORS proxy, size:', base64Data.length);
-
-    const response = await fetch(CORS_PROXY + encodeURIComponent(HF_API_URL), {
+    // Используем allorigins.win как прокси
+    const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(HF_API_URL)}`;
+    
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${HF_TOKEN}`,
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
       },
       body: JSON.stringify({
         inputs: prompt,
@@ -153,7 +150,7 @@ ASSISTANT:`;
       }),
     });
 
-    console.log('HF LLaVA status:', response.status);
+    console.log('HF status:', response.status);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({ error: 'Unknown error' }));
@@ -170,7 +167,7 @@ ASSISTANT:`;
 
     return { text: cleanResponse(answer), nutrition: parseNutrition(answer) };
   } catch (error) {
-    console.error('HF error:', error);
+    console.error('Analyze error:', error);
     throw error;
   }
 }
