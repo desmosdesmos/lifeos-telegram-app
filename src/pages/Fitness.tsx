@@ -432,9 +432,46 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
   const [isProcessing, setIsProcessing] = useState(false);
   const safePhotos = photos || [];
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Сжатие изображения до разумного размера
+  const compressImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = document.createElement('img');
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          
+          // Максимальная ширина 1200px
+          if (width > 1200) {
+            height = (height * 1200) / width;
+            width = 1200;
+          }
+          
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          
+          // Сжимаем в JPEG с качеством 0.8
+          const compressed = canvas.toDataURL('image/jpeg', 0.8);
+          console.log('Compressed image size:', Math.round(compressed.length / 1024), 'KB');
+          resolve(compressed);
+        };
+        img.onerror = reject;
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    console.log('Selected file:', file.name, file.type, file.size);
     
     // Проверяем размер файла (макс 5MB)
     if (file.size > 5 * 1024 * 1024) {
@@ -444,33 +481,30 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
     
     setIsProcessing(true);
     
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      try {
-        onAdd({
-          date: new Date().toISOString().split('T')[0],
-          photo: reader.result as string,
-          weight: Number(weight) || 0,
-          notes,
-        });
-        setWeight('');
-        setNotes('');
-      } catch (err) {
-        console.error('Error adding photo:', err);
-        alert('Ошибка при добавлении фото');
-      } finally {
-        setIsProcessing(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }
-    };
-    reader.onerror = () => {
-      console.error('File read error');
-      alert('Не удалось прочитать файл');
+    try {
+      console.log('Compressing image...');
+      // Сжимаем изображение
+      const compressedPhoto = await compressImage(file);
+      console.log('Image compressed, adding to state...');
+      
+      onAdd({
+        date: new Date().toISOString().split('T')[0],
+        photo: compressedPhoto,
+        weight: Number(weight) || 0,
+        notes,
+      });
+      console.log('Photo added successfully');
+      setWeight('');
+      setNotes('');
+    } catch (err) {
+      console.error('Error processing photo:', err);
+      alert('Ошибка при обработке фото: ' + (err instanceof Error ? err.message : 'Неизвестная ошибка'));
+    } finally {
       setIsProcessing(false);
-    };
-    reader.readAsDataURL(file);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
   };
 
   return (
@@ -481,16 +515,21 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
 
+        {/* Скрытый input для файлов - вынесен вверх */}
+        <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
+
         {/* Add Photo Section */}
         <div className="glass-card rounded-[20px] p-4 mb-6">
           <h3 className="text-lg mb-4">Добавить фото</h3>
-          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           <div className="space-y-3">
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => {
+                  console.log('Camera button clicked');
                   if (fileInputRef.current) {
                     fileInputRef.current.setAttribute('capture', 'user');
+                    fileInputRef.current.setAttribute('accept', 'image/*');
+                    console.log('Input attributes set:', fileInputRef.current.getAttribute('capture'), fileInputRef.current.getAttribute('accept'));
                     fileInputRef.current.click();
                   }
                 }}
@@ -502,8 +541,11 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
               </button>
               <button 
                 onClick={() => {
+                  console.log('Gallery button clicked');
                   if (fileInputRef.current) {
                     fileInputRef.current.removeAttribute('capture');
+                    fileInputRef.current.setAttribute('accept', 'image/*');
+                    console.log('Input attributes set:', fileInputRef.current.getAttribute('accept'));
                     fileInputRef.current.click();
                   }
                 }}
