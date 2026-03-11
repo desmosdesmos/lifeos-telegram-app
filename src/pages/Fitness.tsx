@@ -432,65 +432,46 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
   const [isProcessing, setIsProcessing] = useState(false);
   const safePhotos = photos || [];
 
-  // Простое чтение изображения без сжатия
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
     console.log('📸 Selected file:', file.name, file.type, file.size);
     
-    // Проверяем размер файла (макс 3MB для Telegram)
-    if (file.size > 3 * 1024 * 1024) {
-      alert('Файл слишком большой. Максимум 3MB. Выберите фото меньшего размера.');
+    // Проверяем размер (макс 2MB для iOS Telegram)
+    if (file.size > 2 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимум 2MB. Сделайте скриншот и попробуйте его.');
       return;
     }
     
     setIsProcessing(true);
     
-    // Используем простой FileReader без сжатия
-    const reader = new FileReader();
+    // Создаём Blob URL вместо base64
+    const photoUrl = URL.createObjectURL(file);
+    console.log('✅ Created Blob URL, size:', Math.round(file.size / 1024), 'KB');
     
-    reader.onload = (readerEvent) => {
+    // Небольшая задержка
+    setTimeout(() => {
       try {
-        const photoData = readerEvent.target?.result as string;
-        console.log('✅ File loaded, size:', Math.round(photoData.length / 1024), 'KB');
-        
-        // Небольшая задержка чтобы UI обновился
-        setTimeout(() => {
-          onAdd({
-            date: new Date().toISOString().split('T')[0],
-            photo: photoData,
-            weight: Number(weight) || 0,
-            notes,
-          });
-          console.log('✅ Photo added to state');
-          setWeight('');
-          setNotes('');
-          setIsProcessing(false);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        }, 100);
+        onAdd({
+          date: new Date().toISOString().split('T')[0],
+          photo: photoUrl,
+          weight: Number(weight) || 0,
+          notes,
+        });
+        console.log('✅ Photo added to state');
+        setWeight('');
+        setNotes('');
       } catch (err) {
         console.error('❌ Error adding photo:', err);
         alert('Ошибка при добавлении фото');
+      } finally {
         setIsProcessing(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
-    };
-    
-    reader.onerror = () => {
-      console.error('❌ FileReader error');
-      alert('Не удалось прочитать файл. Попробуйте другое фото.');
-      setIsProcessing(false);
-    };
-    
-    reader.onabort = () => {
-      console.log('⚠️ FileReader aborted');
-      setIsProcessing(false);
-    };
-    
-    console.log('🔄 Starting FileReader...');
-    reader.readAsDataURL(file);
+    }, 50);
   };
 
   return (
@@ -558,7 +539,15 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
             <div className="grid grid-cols-2 gap-3">
               {safePhotos.slice().reverse().map((photo) => (
                 <div key={photo.id} className="glass-card rounded-[16px] overflow-hidden">
-                  <img src={photo.photo} alt={photo.date} className="w-full h-48 object-cover" />
+                  <img 
+                    src={photo.photo} 
+                    alt={photo.date} 
+                    className="w-full h-48 object-cover"
+                    onError={(e) => {
+                      console.error('Image load error:', photo.photo);
+                      e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect fill="%23333" width="200" height="200"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle"%3ENo image%3C/text%3E%3C/svg%3E';
+                    }}
+                  />
                   <div className="p-3">
                     <p className="text-sm text-white/90">{photo.date}</p>
                     {photo.weight > 0 && <p className="text-xs text-white/50">{photo.weight} кг</p>}
