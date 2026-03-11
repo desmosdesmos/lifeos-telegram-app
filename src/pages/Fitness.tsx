@@ -508,11 +508,9 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
             <div className="grid grid-cols-2 gap-3">
               <button 
                 onClick={() => {
-                  console.log('Camera button clicked');
                   if (fileInputRef.current) {
                     fileInputRef.current.setAttribute('capture', 'user');
                     fileInputRef.current.setAttribute('accept', 'image/*');
-                    console.log('Input attributes set:', fileInputRef.current.getAttribute('capture'), fileInputRef.current.getAttribute('accept'));
                     fileInputRef.current.click();
                   }
                 }}
@@ -524,11 +522,9 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
               </button>
               <button 
                 onClick={() => {
-                  console.log('Gallery button clicked');
                   if (fileInputRef.current) {
                     fileInputRef.current.removeAttribute('capture');
                     fileInputRef.current.setAttribute('accept', 'image/*');
-                    console.log('Input attributes set:', fileInputRef.current.getAttribute('accept'));
                     fileInputRef.current.click();
                   }
                 }}
