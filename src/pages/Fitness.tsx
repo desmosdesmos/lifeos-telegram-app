@@ -432,79 +432,65 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
   const [isProcessing, setIsProcessing] = useState(false);
   const safePhotos = photos || [];
 
-  // Сжатие изображения до разумного размера
-  const compressImage = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const img = document.createElement('img');
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          let width = img.width;
-          let height = img.height;
-          
-          // Максимальная ширина 1200px
-          if (width > 1200) {
-            height = (height * 1200) / width;
-            width = 1200;
-          }
-          
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          
-          // Сжимаем в JPEG с качеством 0.8
-          const compressed = canvas.toDataURL('image/jpeg', 0.8);
-          console.log('Compressed image size:', Math.round(compressed.length / 1024), 'KB');
-          resolve(compressed);
-        };
-        img.onerror = reject;
-        img.src = e.target?.result as string;
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
-
+  // Простое чтение изображения без сжатия
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
-    console.log('Selected file:', file.name, file.type, file.size);
+    console.log('📸 Selected file:', file.name, file.type, file.size);
     
-    // Проверяем размер файла (макс 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Файл слишком большой. Максимум 5MB.');
+    // Проверяем размер файла (макс 3MB для Telegram)
+    if (file.size > 3 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимум 3MB. Выберите фото меньшего размера.');
       return;
     }
     
     setIsProcessing(true);
     
-    try {
-      console.log('Compressing image...');
-      // Сжимаем изображение
-      const compressedPhoto = await compressImage(file);
-      console.log('Image compressed, adding to state...');
-      
-      onAdd({
-        date: new Date().toISOString().split('T')[0],
-        photo: compressedPhoto,
-        weight: Number(weight) || 0,
-        notes,
-      });
-      console.log('Photo added successfully');
-      setWeight('');
-      setNotes('');
-    } catch (err) {
-      console.error('Error processing photo:', err);
-      alert('Ошибка при обработке фото: ' + (err instanceof Error ? err.message : 'Неизвестная ошибка'));
-    } finally {
-      setIsProcessing(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+    // Используем простой FileReader без сжатия
+    const reader = new FileReader();
+    
+    reader.onload = (readerEvent) => {
+      try {
+        const photoData = readerEvent.target?.result as string;
+        console.log('✅ File loaded, size:', Math.round(photoData.length / 1024), 'KB');
+        
+        // Небольшая задержка чтобы UI обновился
+        setTimeout(() => {
+          onAdd({
+            date: new Date().toISOString().split('T')[0],
+            photo: photoData,
+            weight: Number(weight) || 0,
+            notes,
+          });
+          console.log('✅ Photo added to state');
+          setWeight('');
+          setNotes('');
+          setIsProcessing(false);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+        }, 100);
+      } catch (err) {
+        console.error('❌ Error adding photo:', err);
+        alert('Ошибка при добавлении фото');
+        setIsProcessing(false);
       }
-    }
+    };
+    
+    reader.onerror = () => {
+      console.error('❌ FileReader error');
+      alert('Не удалось прочитать файл. Попробуйте другое фото.');
+      setIsProcessing(false);
+    };
+    
+    reader.onabort = () => {
+      console.log('⚠️ FileReader aborted');
+      setIsProcessing(false);
+    };
+    
+    console.log('🔄 Starting FileReader...');
+    reader.readAsDataURL(file);
   };
 
   return (
