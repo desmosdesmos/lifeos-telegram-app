@@ -3,6 +3,7 @@ import { ChevronLeft, Send, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useBottomBar } from '../context/BottomBarContext';
 import { sendMessage } from '../utils/aiService';
 
 interface Message {
@@ -27,6 +28,7 @@ const quickQuestions = [
 export function AIChat() {
   const navigate = useNavigate();
   const { state } = useApp();
+  const { hide, show } = useBottomBar();
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -39,6 +41,20 @@ export function AIChat() {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  // Скрытие нижнего бара при открытии клавиатуры
+  useEffect(() => {
+    const handleFocusIn = () => hide();
+    const handleFocusOut = () => show();
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
