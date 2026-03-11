@@ -270,7 +270,7 @@ function getCategoryColor(cat: string): string {
   return colors[cat] || '#888888';
 }
 
-function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: any) => void }) {
+export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: any) => void }) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');

@@ -1,6 +1,7 @@
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { AppProvider, useApp } from './context/AppContext';
+import { BottomBarProvider } from './context/BottomBarContext';
 import { Onboarding } from './pages/Onboarding';
 import './index.css';
 
@@ -17,7 +18,9 @@ function AppContent() {
 function App() {
   return (
     <AppProvider>
-      <AppContent />
+      <BottomBarProvider>
+        <AppContent />
+      </BottomBarProvider>
     </AppProvider>
   );
 }

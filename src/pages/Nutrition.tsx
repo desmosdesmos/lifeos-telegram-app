@@ -3,6 +3,7 @@ import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat, MessageCircle }
 import { useNavigate } from 'react-router';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useBottomBar } from '../context/BottomBarContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
 import { bjuGuide } from '../utils/macroCalculator';
 import { AIConsultantChat } from '../components/AIConsultantChat';
@@ -12,11 +13,21 @@ import { Html5Qrcode } from 'html5-qrcode';
 export function Nutrition() {
   const navigate = useNavigate();
   const { state, addMeal, removeMeal, macroTargets } = useApp();
+  const { hide, show } = useBottomBar();
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [showProducts, setShowProducts] = useState(false);
   const [showChat, setShowChat] = useState(false);
+
+  useEffect(() => {
+    if (showAddMeal || showScanner || showGuide || showProducts || showChat) {
+      hide();
+    } else {
+      show();
+    }
+    return () => show();
+  }, [showAddMeal, showScanner, showGuide, showProducts, showChat]);
 
   const totalCalories = state.meals.reduce((sum, m) => sum + m.calories, 0);
   const totalProtein = state.meals.reduce((sum, m) => sum + m.protein, 0);
@@ -218,13 +229,27 @@ function AINutritionist({ macros, targets }: { macros: any; targets: any }) {
   );
 }
 
-function AddMealModal({ onClose }: { onClose: () => void }) {
+export function AddMealModal({ onClose }: { onClose: () => void }) {
   const { addMeal } = useApp();
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [fat, setFat] = useState('');
   const [carbs, setCarbs] = useState('');
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const handleFocusIn = () => setIsKeyboardOpen(true);
+    const handleFocusOut = () => setIsKeyboardOpen(false);
+
+    document.addEventListener('focusin', handleFocusIn);
+    document.addEventListener('focusout', handleFocusOut);
+
+    return () => {
+      document.removeEventListener('focusin', handleFocusIn);
+      document.removeEventListener('focusout', handleFocusOut);
+    };
+  }, []);
 
   const handleSubmit = () => {
     if (!name || !calories) return;
@@ -235,8 +260,8 @@ function AddMealModal({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className={`glass-card rounded-t-[32px] w-full max-w-md p-6 ${isKeyboardOpen ? 'pb-6' : 'pb-40'} max-h-[90vh] overflow-y-auto`}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Добавить приём пищи</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -456,7 +481,7 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
       <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Сканировать штрихкод</h2>
@@ -587,11 +612,11 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
 function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: any) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Все');
-  
-  const filteredProducts = searchQuery 
+
+  const filteredProducts = searchQuery
     ? searchProducts(searchQuery)
-    : selectedCategory === 'Все' 
-      ? productsDatabase 
+    : selectedCategory === 'Все'
+      ? productsDatabase
       : productsDatabase.filter(p => p.category === selectedCategory);
 
   const handleSelectProduct = (product: any) => {
@@ -609,8 +634,8 @@ function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: 
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">База продуктов</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -652,8 +677,8 @@ function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: 
 
 function GuideModal({ onClose }: { onClose: () => void }) {
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Как считать БЖУ</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>

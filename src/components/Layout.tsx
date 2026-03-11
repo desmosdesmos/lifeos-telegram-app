@@ -1,14 +1,16 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Home, LineChart, Plus, Sparkles, User } from 'lucide-react';
+import { useBottomBar } from '../context/BottomBarContext';
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { isHidden } = useBottomBar();
 
   const navItems = [
     { path: '/', icon: Home, label: 'Главная' },
     { path: '/analysis', icon: LineChart, label: 'Анализ' },
-    { path: '/nutrition', icon: Plus, label: 'Добавить' },
+    { path: '/quick-add', icon: Plus, label: 'Добавить' },
     { path: '/chat', icon: Sparkles, label: 'AI' },
     { path: '/profile', icon: User, label: 'Профиль' },
   ];
@@ -20,8 +22,8 @@ export function Layout() {
       </div>
 
       {/* Bottom Navigation с анимациями */}
-      <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none">
-        <div 
+      <nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none transition-all duration-300 ${isHidden ? 'translate-y-[200%]' : 'translate-y-0'}`}>
+        <div
           className="rounded-[24px] px-4 py-3 flex items-center justify-around pointer-events-auto"
           style={{
             background: 'rgba(255, 255, 255, 0.12)',

@@ -6,6 +6,7 @@ interface TelegramUser {
   last_name?: string;
   username?: string;
   language_code?: string;
+  photo_url?: string;
 }
 
 interface TelegramWebApp {
@@ -42,6 +43,7 @@ export function useTelegramWebApp() {
   const [webApp, setWebApp] = useState<TelegramWebApp | null>(null);
   const [userId, setUserId] = useState<number | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
@@ -57,6 +59,11 @@ export function useTelegramWebApp() {
           .filter(Boolean)
           .join(' ') || tg.initDataUnsafe.user.username || null;
         setUserName(name);
+        
+        // Получаем аватарку из Telegram
+        if (tg.initDataUnsafe.user.photo_url) {
+          setUserAvatar(tg.initDataUnsafe.user.photo_url);
+        }
       }
 
       // Set header color
@@ -101,6 +108,7 @@ export function useTelegramWebApp() {
     webApp,
     userId,
     userName,
+    userAvatar,
     isTelegram: !!webApp,
     closeApp,
     showConfirm,

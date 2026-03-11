@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useBottomBar } from '../context/BottomBarContext';
 import { sendMessage, getQuickTip, analyzeFoodImage, type AIResponse } from '../utils/aiService';
 
 interface Message {
@@ -88,6 +89,7 @@ const quickQuestions = {
 export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps) {
   const consultant = consultants[type];
   const questions = quickQuestions[type];
+  const { hide, show } = useBottomBar();
   const [messages, setMessages] = useState<Message[]>([
     {
       type: 'ai',
@@ -98,6 +100,11 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   const [isTyping, setIsTyping] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    hide();
+    return () => show();
+  }, []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -171,7 +178,7 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm">
       <div className="glass-card rounded-t-[32px] w-full max-w-md h-[85vh] flex flex-col pb-24">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-white/10">

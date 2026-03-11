@@ -10,6 +10,7 @@ interface UserProfile {
   gender: 'male' | 'female';
   goal: string;
   lifestyle: string;
+  avatarUrl?: string;
 }
 
 interface Meal {
