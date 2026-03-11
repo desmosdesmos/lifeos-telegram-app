@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
-import { sendMessage, getQuickTip, analyzeFoodImage, type AIResponse } from '../utils/aiService';
+import { sendMessage, getQuickTip } from '../utils/aiService';
 
 interface Message {
   type: 'user' | 'ai';
@@ -98,7 +98,6 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -122,64 +121,13 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
     setIsTyping(true);
 
     try {
-      // Передаём ВСЕ данные в AI
-      const response = await sendMessage(text, {
-        type,
-        userData, // Все данные из раздела
-      });
-      
+      const response = await sendMessage(text, { type, userData });
       setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
     } catch (error) {
       setMessages((prev) => [...prev, { type: 'ai', text: 'Произошла ошибка. Попробуйте снова.' }]);
     } finally {
       setIsTyping(false);
     }
-  };
-
-  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64 = reader.result as string;
-      
-      setMessages([...messages, { 
-        type: 'user', 
-        text: type === 'nutrition' ? '📸 Проанализируй это блюдо' : '📸 Проанализируй фото прогресса' 
-      }]);
-      setIsTyping(true);
-
-      try {
-        if (type === 'nutrition') {
-          const response: AIResponse & { nutrition?: any } = await analyzeFoodImage(base64);
-          if (response.nutrition) {
-            setMessages((prev) => [...prev, {
-              type: 'ai',
-              text: `${response.text}\n\n📊 КБЖУ:\n• Калории: ${response.nutrition.calories} ккал\n• Белки: ${response.nutrition.protein}г\n• Жиры: ${response.nutrition.fat}г\n• Углеводы: ${response.nutrition.carbs}г`
-            }]);
-          } else {
-            setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
-          }
-        } else {
-          const response: AIResponse = await sendMessage('Проанализируй фото', { type, userData });
-          setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
-        }
-      } catch (error) {
-        console.error('Photo analysis error:', error);
-        const errorMsg = error instanceof Error ? error.message : 'Неизвестная ошибка';
-        setMessages((prev) => [...prev, { 
-          type: 'ai', 
-          text: `❌ Не удалось проанализировать изображение.\n\n${errorMsg}\n\nПопробуйте:\n• Сделать фото при хорошем освещении\n• Убедиться, что еда в фокусе\n• Попробовать ещё раз` 
-        }]);
-      } finally {
-        setIsTyping(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
-      }
-    };
-    reader.readAsDataURL(file);
   };
 
   return (
@@ -264,8 +212,8 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
           </div>
         )}
 
-        {/* Photo Upload for Nutrition */}
-        {type === 'nutrition' && (
+        {/* Photo Upload for Nutrition - скрыто, т.к. CORS не работает */}
+        {/* type === 'nutrition' && (
           <div className="px-6 pb-2">
             <button
               onClick={() => fileInputRef.current?.click()}
@@ -282,7 +230,7 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
               className="hidden"
             />
           </div>
-        )}
+        ) */}
 
         {/* Input */}
         <div className="p-4 border-t border-white/10">

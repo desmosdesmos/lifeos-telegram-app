@@ -112,64 +112,13 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (Hugging Face через codetabs прокси)
-// Работает в РФ без VPN, бесплатно
+// Анализ еды по фото (заглушка - CORS ограничения)
+// Hugging Face, Gemini и другие не работают из браузера без своего прокси
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || '';
-  const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
-
-  const prompt = `USER: <image>What is this food? Estimate calories, protein, fat, carbs.
-Answer in Russian format:
-Блюдо: [название]
-Вес: [граммы]г
-Калории: [число] ккал
-Белки: [число]г
-Жиры: [число]г
-Углеводы: [число]г
-Комментарий:
-
-ASSISTANT:`;
-
-  try {
-    const base64Data = imageBase64.includes(',') ? imageBase64.split(',')[1] : imageBase64;
-    console.log('Sending to HF via codetabs, size:', base64Data.length);
-
-    // Используем codetabs.com как прокси
-    const proxyUrl = `https://api.codetabs.com/v1/proxy/?quest=${encodeURIComponent(HF_API_URL)}`;
-    
-    const response = await fetch(proxyUrl, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${HF_TOKEN}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: prompt,
-        parameters: { max_new_tokens: 200 },
-        image: base64Data,
-      }),
-    });
-
-    console.log('HF status:', response.status);
-
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-      console.error('HF error:', error);
-      
-      if (response.status === 503) throw new Error('Модель загружается (~30 сек). Попробуйте ещё раз.');
-      if (response.status === 401 || response.status === 403) throw new Error('Неверный токен HF.');
-      throw new Error(`API error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const text = Array.isArray(data) ? data[0]?.generated_text || 'Не удалось.' : data?.generated_text || 'Не удалось.';
-    const answer = text.split('ASSISTANT:').pop()?.trim() || text;
-
-    return { text: cleanResponse(answer), nutrition: parseNutrition(answer) };
-  } catch (error) {
-    console.error('Analyze error:', error);
-    throw error;
-  }
+  console.log('Image analysis requested, size:', imageBase64.length);
+  
+  // Возвращаем заглушку с предложением описать еду текстом
+  throw new Error('Анализ фото временно недоступен. Опишите блюдо текстом в чате.');
 }
 
 // Построение промпта с контекстом
@@ -228,23 +177,6 @@ function cleanResponse(text: string): string {
     .replace(/__/g, '')
     .replace(/_/g, '')
     .trim();
-}
-
-// Парсинг КБЖУ из текста
-function parseNutrition(text: string): ImageAnalysis['nutrition'] | undefined {
-  try {
-    const calories = parseInt(text.match(/Калории:\s*(\d+)/i)?.[1] || '0');
-    const protein = parseInt(text.match(/Белки:\s*(\d+)/i)?.[1] || '0');
-    const fat = parseInt(text.match(/Жиры:\s*(\d+)/i)?.[1] || '0');
-    const carbs = parseInt(text.match(/Углеводы:\s*(\d+)/i)?.[1] || '0');
-
-    if (calories > 0) {
-      return { calories, protein, fat, carbs };
-    }
-  } catch (e) {
-    console.error('Parse nutrition error:', e);
-  }
-  return undefined;
 }
 
 // Быстрые советы (кэшированные ответы для частых вопросов)
