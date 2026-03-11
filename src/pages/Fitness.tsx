@@ -3,6 +3,7 @@ import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircl
 import { useNavigate } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useBottomBar } from '../context/BottomBarContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 
 const weekDays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
@@ -17,6 +18,7 @@ const workoutTemplates = [
 export function Fitness() {
   const navigate = useNavigate();
   const { state, addWorkout, removeWorkout, addProgressPhoto, removeProgressPhoto } = useApp();
+  const { hide, show } = useBottomBar();
   const [showAddWorkout, setShowAddWorkout] = useState(false);
   const [showTimer, setShowTimer] = useState(false);
   const [showWeekPlan, setShowWeekPlan] = useState(false);
@@ -25,6 +27,16 @@ export function Fitness() {
   const [timerActive, setTimerActive] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Скрытие нижнего бара при открытых модалках
+  useEffect(() => {
+    if (showAddWorkout || showTimer || showWeekPlan || showPhotos || showChat) {
+      hide();
+    } else {
+      show();
+    }
+    return () => show();
+  }, [showAddWorkout, showTimer, showWeekPlan, showPhotos, showChat]);
 
   // Timer logic
   useEffect(() => {
@@ -417,39 +429,53 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
 function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos?: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
   const safePhotos = photos || [];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      try {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          onAdd({
-            date: new Date().toISOString().split('T')[0],
-            photo: reader.result as string,
-            weight: Number(weight) || 0,
-            notes,
-          });
-          setWeight('');
-          setNotes('');
-          if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-          }
-        };
-        reader.onerror = () => {
-          console.error('Error reading file');
-        };
-        reader.readAsDataURL(file);
-      } catch (err) {
-        console.error('File error:', err);
-      }
+    if (!file) return;
+    
+    // Проверяем размер файла (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Файл слишком большой. Максимум 5MB.');
+      return;
     }
+    
+    setIsProcessing(true);
+    
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      try {
+        onAdd({
+          date: new Date().toISOString().split('T')[0],
+          photo: reader.result as string,
+          weight: Number(weight) || 0,
+          notes,
+        });
+        setWeight('');
+        setNotes('');
+      } catch (err) {
+        console.error('Error adding photo:', err);
+        alert('Ошибка при добавлении фото');
+      } finally {
+        setIsProcessing(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }
+    };
+    reader.onerror = () => {
+      console.error('File read error');
+      alert('Не удалось прочитать файл');
+      setIsProcessing(false);
+    };
+    reader.readAsDataURL(file);
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[90] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-40 max-h-[85vh] overflow-y-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }} onClick={(e) => e.stopPropagation()} className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-8 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl">Фото прогресса</h2>
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
@@ -460,9 +486,13 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
           <h3 className="text-lg mb-4">Добавить фото</h3>
           <input ref={fileInputRef} type="file" accept="image/*" capture="user" onChange={handleFileChange} className="hidden" />
           <div className="space-y-3">
-            <button onClick={() => fileInputRef.current?.click()} className="w-full py-3 bg-[#22C55E] rounded-[16px] text-white font-medium flex items-center justify-center gap-2">
+            <button 
+              onClick={() => fileInputRef.current?.click()} 
+              disabled={isProcessing}
+              className="w-full py-3 bg-[#22C55E] rounded-[16px] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+            >
               <Camera className="w-5 h-5" />
-              Сделать фото
+              {isProcessing ? 'Обработка...' : 'Сделать фото'}
             </button>
             <div className="grid grid-cols-2 gap-3">
               <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес (кг)" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
