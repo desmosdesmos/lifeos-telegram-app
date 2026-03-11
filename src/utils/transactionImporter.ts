@@ -5,8 +5,8 @@ import Papa from 'papaparse';
 import Tesseract from 'tesseract.js';
 import * as PDFJS from 'pdfjs-dist';
 
-// Настройка worker для PDF.js - используем актуальную версию
-const PDF_WORKER_URL = 'https://unpkg.com/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+// Настройка worker для PDF.js - используем jsdelivr CDN
+const PDF_WORKER_URL = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
 PDFJS.GlobalWorkerOptions.workerSrc = PDF_WORKER_URL;
 
 export interface ImportedTransaction {
@@ -702,12 +702,12 @@ export async function parseScreenshot(
     const text = result.data.text;
     console.log('OCR result text:', text);
 
-    // Ищем все суммы с валютой напрямую
+    // Ищем суммы с валютой (₽, RUB, руб, рублей)
     const transactions: ImportedTransaction[] = [];
     const amountPattern = /([+-]?\d[\d\s.,]*)\s*(руб|₽|RUB|рублей)/gi;
     const matches = [...text.matchAll(amountPattern)];
     
-    console.log('Found amount matches:', matches.length);
+    console.log('Found amount matches with currency:', matches.length);
 
     for (const match of matches) {
       const amountStr = match[1].replace(/\s/g, '').replace(',', '.');
@@ -745,10 +745,52 @@ export async function parseScreenshot(
       }
     }
 
+    // Если не нашли с валютой, ищем числа в формате Сбера (1 000,00 или 1000.00)
+    if (transactions.length === 0) {
+      console.log('Trying to find amounts without currency...');
+      // Формат: число с пробелами/запятыми, за которым следует дата или описание
+      const sbFormatPattern = /(\d{1,3}(?:\s?\d{3})?(?:[,.]\d{2})?)\s*(?:RUB|₽|руб)?/gi;
+      const sbMatches = [...text.matchAll(sbFormatPattern)];
+      
+      for (const match of sbMatches) {
+        const amountStr = match[1].replace(/\s/g, '').replace(',', '.');
+        const amount = Math.abs(parseFloat(amountStr) || 0);
+        
+        // Пропускаем слишком маленькие и слишком большие числа
+        if (amount < 1 || amount > 1000000) continue;
+        
+        const isIncome = text.includes('Пополнение') || text.includes('Перевод от') || text.includes('+');
+        
+        const contextStart = Math.max(0, match.index! - 50);
+        const contextEnd = match.index! + 50;
+        const context = text.substring(contextStart, contextEnd);
+        
+        let name = context
+          .replace(sbFormatPattern, '')
+          .replace(/\d{2}\.\d{2}\.\d{2,4}/g, '')
+          .replace(/[+]/g, '')
+          .trim()
+          .substring(0, 50) || 'Транзакция';
+        
+        name = name.replace(/[*_|[\]()]/g, '').replace(/\s+/g, ' ').trim();
+        
+        if (name.length > 2 && !name.includes('СБЕР') && !name.includes('Поиск')) {
+          transactions.push({
+            name,
+            amount,
+            type: isIncome ? 'income' : 'expense',
+            category: 'Другое',
+            date: new Date().toISOString().split('T')[0],
+            source: 'ocr',
+          });
+        }
+      }
+    }
+
     console.log('Parsed transactions from OCR:', transactions.length);
 
     if (transactions.length === 0) {
-      throw new Error('Не найдено сумм с валютой на изображении. Попробуйте более чёткий скриншот.');
+      throw new Error('Не найдено сумм на изображении. Попробуйте более чёткий скриншот с видимыми суммами.');
     }
 
     return transactions;
