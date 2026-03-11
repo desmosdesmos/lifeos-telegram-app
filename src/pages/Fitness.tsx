@@ -484,16 +484,36 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
         {/* Add Photo Section */}
         <div className="glass-card rounded-[20px] p-4 mb-6">
           <h3 className="text-lg mb-4">Добавить фото</h3>
-          <input ref={fileInputRef} type="file" accept="image/*" capture="user" onChange={handleFileChange} className="hidden" />
+          <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileChange} className="hidden" />
           <div className="space-y-3">
-            <button 
-              onClick={() => fileInputRef.current?.click()} 
-              disabled={isProcessing}
-              className="w-full py-3 bg-[#22C55E] rounded-[16px] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              <Camera className="w-5 h-5" />
-              {isProcessing ? 'Обработка...' : 'Сделать фото'}
-            </button>
+            <div className="grid grid-cols-2 gap-3">
+              <button 
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.setAttribute('capture', 'user');
+                    fileInputRef.current.click();
+                  }
+                }}
+                disabled={isProcessing}
+                className="py-3 bg-[#22C55E] rounded-[16px] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Camera className="w-5 h-5" />
+                {isProcessing ? '...' : 'Селфи'}
+              </button>
+              <button 
+                onClick={() => {
+                  if (fileInputRef.current) {
+                    fileInputRef.current.removeAttribute('capture');
+                    fileInputRef.current.click();
+                  }
+                }}
+                disabled={isProcessing}
+                className="py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                <Image className="w-5 h-5" />
+                {isProcessing ? '...' : 'Из галереи'}
+              </button>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес (кг)" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
               <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Заметка" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
