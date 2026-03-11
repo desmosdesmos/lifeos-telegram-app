@@ -5,15 +5,11 @@ import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
-import { 
-  parseCSV, 
-  parseSMS, 
-  parseScreenshot,
+import {
   parsePDF,
-  bankFormats, 
+  parseScreenshot,
   previewImport,
   type ImportedTransaction,
-  type SMSMessage,
 } from '../utils/transactionImporter';
 
 const categories = ['Еда', 'Транспорт', 'Спорт', 'Развлечения', 'Здоровье', 'Образование', 'Другое'];
@@ -319,12 +315,11 @@ export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; o
 }
 
 function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t: ImportedTransaction[]) => void }) {
-  const [method, setMethod] = useState<'csv' | 'pdf' | 'sms' | 'screenshot'>('pdf');
-  const [selectedBank, setSelectedBank] = useState('sberbank');
+  const [method, setMethod] = useState<'pdf' | 'screenshot' | 'text'>('pdf');
   const [isLoading, setIsLoading] = useState(false);
   const [preview, setPreview] = useState<any>(null);
   const [error, setError] = useState('');
-  const [smsText, setSmsText] = useState('');
+  const [textData, setTextData] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const screenshotInputRef = useRef<HTMLInputElement>(null);
 
@@ -337,22 +332,6 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
       setPreview(previewData);
     } catch (err) {
       setError('Не удалось распарсить PDF. Убедитесь, что это выписка из банка.');
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleCSVUpload = async (file: File) => {
-    setIsLoading(true);
-    setError('');
-    try {
-      const format = bankFormats[selectedBank] || bankFormats.generic;
-      const transactions = await parseCSV(file, format);
-      const previewData = previewImport(transactions);
-      setPreview(previewData);
-    } catch (err) {
-      setError('Ошибка при чтении CSV. Проверьте формат файла.');
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -374,20 +353,54 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
     }
   };
 
-  const handleSMSParse = () => {
+  const handleTextParse = () => {
     setIsLoading(true);
     setError('');
     try {
-      const messages: SMSMessage[] = smsText.split('\n').filter(s => s.trim()).map(s => ({ text: s }));
-      const transactions = parseSMS(messages);
-      const previewData = previewImport(transactions);
-      setPreview(previewData);
+      // Разбиваем текст на строки и ищем суммы с валютой
+      const lines = textData.split('\n').filter(l => l.trim());
+      const transactions: ImportedTransaction[] = [];
+      
+      for (const line of lines) {
+        const amountMatch = line.match(/([+-]?\d[\d\s.,]*)\s*(₽|RUB|руб|рублей)/i);
+        if (amountMatch) {
+          const amount = Math.abs(parseFloat(amountMatch[1].replace(/\s/g, '').replace(',', '.')));
+          const isIncome = line.includes('+') || line.includes('Пополнение') || line.includes('Перевод от');
+          
+          // Извлекаем название
+          let name = line.replace(amountMatch[0], '').replace(/[0-9.:;]/g, '').trim().substring(0, 50) || 'Транзакция';
+          
+          transactions.push({
+            name,
+            amount,
+            type: isIncome ? 'income' : 'expense',
+            category: 'Другое',
+            date: new Date().toISOString().split('T')[0],
+            source: 'text',
+          });
+        }
+      }
+      
+      if (transactions.length === 0) {
+        setError('Не найдено сумм с валютой (₽, RUB, руб). Вставьте текст выписки или SMS.');
+      } else {
+        const previewData = previewImport(transactions);
+        setPreview(previewData);
+      }
     } catch (err) {
-      setError('Ошибка при парсинге SMS.');
+      setError('Ошибка при парсинге текста.');
       console.error(err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const resetImport = () => {
+    setPreview(null);
+    setError('');
+    setTextData('');
+    if (fileInputRef.current) fileInputRef.current.value = '';
+    if (screenshotInputRef.current) screenshotInputRef.current.value = '';
   };
 
   const handleImport = () => {
@@ -395,14 +408,6 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
       onImport(preview.transactions);
       onClose();
     }
-  };
-
-  const resetImport = () => {
-    setPreview(null);
-    setError('');
-    setSmsText('');
-    if (fileInputRef.current) fileInputRef.current.value = '';
-    if (screenshotInputRef.current) screenshotInputRef.current.value = '';
   };
 
   return (
@@ -413,37 +418,31 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
           <button onClick={onClose} className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">✕</button>
         </div>
 
-        {/* Выбор метода */}
+        {/* Выбор метода - 3 основных */}
         {!preview && (
           <>
-            <div className="flex gap-2 mb-6">
+            <p className="text-white/60 text-sm mb-4">Выберите способ импорта:</p>
+            <div className="grid grid-cols-3 gap-3 mb-6">
               <button
                 onClick={() => setMethod('pdf')}
-                className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'pdf' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
+                className={`py-4 rounded-[20px] font-medium flex flex-col items-center gap-2 ${method === 'pdf' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
               >
-                <FileText className="w-4 h-4" />
-                PDF
-              </button>
-              <button
-                onClick={() => setMethod('csv')}
-                className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'csv' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
-              >
-                <FileText className="w-4 h-4" />
-                CSV
-              </button>
-              <button
-                onClick={() => setMethod('sms')}
-                className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'sms' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
-              >
-                <MessageSquare className="w-4 h-4" />
-                SMS
+                <FileText className="w-6 h-6" />
+                <span className="text-xs">PDF</span>
               </button>
               <button
                 onClick={() => setMethod('screenshot')}
-                className={`flex-1 py-3 rounded-[16px] font-medium flex items-center justify-center gap-2 ${method === 'screenshot' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
+                className={`py-4 rounded-[20px] font-medium flex flex-col items-center gap-2 ${method === 'screenshot' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
               >
-                <Camera className="w-4 h-4" />
-                Скрин
+                <Camera className="w-6 h-6" />
+                <span className="text-xs">Скрин</span>
+              </button>
+              <button
+                onClick={() => setMethod('text')}
+                className={`py-4 rounded-[20px] font-medium flex flex-col items-center gap-2 ${method === 'text' ? 'bg-[#4DA3FF] text-white' : 'glass-card text-white/70'}`}
+              >
+                <MessageSquare className="w-6 h-6" />
+                <span className="text-xs">Текст</span>
               </button>
             </div>
 
@@ -495,77 +494,39 @@ function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t:
               </div>
             )}
 
-            {/* CSV Метод */}
-            {method === 'csv' && (
+            {/* Текст Метод */}
+            {method === 'text' && (
               <div className="space-y-4">
                 <div>
-                  <label className="text-white/60 text-sm mb-2 block">Выберите банк</label>
-                  <select
-                    value={selectedBank}
-                    onChange={(e) => setSelectedBank(e.target.value)}
-                    className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]"
-                  >
-                    {Object.entries(bankFormats).map(([key, format]) => (
-                      <option key={key} value={key}>{format.name}</option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-white/40 mt-2">{bankFormats[selectedBank]?.description}</p>
-                </div>
-
-                <div className="glass-card rounded-[16px] p-4 border-2 border-dashed border-white/20 text-center">
-                  <Upload className="w-8 h-8 text-white/40 mx-auto mb-2" />
-                  <p className="text-sm text-white/70 mb-2">Загрузите CSV файл</p>
-                  <p className="text-xs text-white/40 mb-4">Выгрузите историю операций из банковского приложения</p>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".csv,.txt"
-                    onChange={(e) => e.target.files?.[0] && handleCSVUpload(e.target.files[0])}
-                    className="hidden"
-                  />
-                  <button
-                    onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-[#4DA3FF] rounded-[12px] text-white text-sm font-medium"
-                  >
-                    Выбрать файл
-                  </button>
-                </div>
-
-                <div className="glass-card rounded-[16px] p-4">
-                  <p className="text-xs text-white/50 mb-2">📌 Как получить CSV:</p>
-                  <ol className="text-xs text-white/40 space-y-1">
-                    <li>• Сбербанк: Платёж → История → Экспорт</li>
-                    <li>• Тинькофф: История → Экспорт → CSV</li>
-                    <li>• Альфа: История → Настройки → Выписка</li>
-                    <li>• ВТБ: История → Экспорт операций</li>
-                  </ol>
-                </div>
-              </div>
-            )}
-
-            {/* SMS Метод */}
-            {method === 'sms' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-white/60 text-sm mb-2 block">Вставьте SMS от банка</label>
+                  <label className="text-white/60 text-sm mb-2 block">Вставьте текст выписки или SMS</label>
                   <textarea
-                    value={smsText}
-                    onChange={(e) => setSmsText(e.target.value)}
-                    placeholder="Карта *1234: +5000.00 RUB. Баланс: 15000.00 RUB. 12.03.24 14:30"
-                    rows={6}
+                    value={textData}
+                    onChange={(e) => setTextData(e.target.value)}
+                    placeholder="Пример:
+ПЯТЕРОЧКА -1234.56 ₽ 12.03.2024
+Перевод от IVANOV +5000.00 ₽ 12.03.2024
+Такси -450.00 руб 12.03.2024"
+                    rows={8}
                     className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-sm resize-none"
                   />
                 </div>
                 <button
-                  onClick={handleSMSParse}
-                  disabled={!smsText.trim() || isLoading}
+                  onClick={handleTextParse}
+                  disabled={!textData.trim() || isLoading}
                   className="w-full py-4 bg-[#4DA3FF] rounded-[20px] text-white font-medium disabled:opacity-50"
                 >
-                  {isLoading ? 'Обработка...' : 'Распарсить SMS'}
+                  {isLoading ? 'Обработка...' : 'Распарсить текст'}
                 </button>
                 <div className="glass-card rounded-[16px] p-4">
-                  <p className="text-xs text-white/50 mb-2">📌 Поддерживаемые банки:</p>
-                  <p className="text-xs text-white/40">Сбербанк, Тинькофф, Альфа-Банк, ВТБ</p>
+                  <p className="text-xs text-white/50 mb-2">📌 Что можно вставить:</p>
+                  <ul className="text-xs text-white/40 space-y-1">
+                    <li>• Текст из PDF выписки</li>
+                    <li>• SMS от банка</li>
+                    <li>• Копию истории операций</li>
+                  </ul>
+                </div>
+                <div className="glass-card rounded-[16px] p-3 bg-[#22C55E]/10 border border-[#22C55E]/20">
+                  <p className="text-[#22C55E] text-xs">✓ Автоматически найдёт суммы с ₽, RUB, руб</p>
                 </div>
               </div>
             )}
