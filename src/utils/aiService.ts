@@ -112,11 +112,11 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (через Gemini Vision, так как Groq не поддерживает изображения)
+// Анализ еды по фото (через Gemini Vision)
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // Используем Gemini только для анализа изображений
+  // Используем Gemini для анализа изображений
   const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent';
+  const API_URL_VISION = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent';
 
   const prompt = `Проанализируй это блюдо. Определи:
 1. Что это за блюдо
@@ -134,6 +134,13 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
 Краткий комментарий по полезности.`;
 
   try {
+    // Извлекаем base64 без data:image префикса
+    const base64Data = imageBase64.includes(',') 
+      ? imageBase64.split(',')[1] 
+      : imageBase64;
+
+    console.log('Sending image to Gemini, size:', base64Data.length);
+
     const response = await fetch(`${API_URL_VISION}?key=${API_KEY}`, {
       method: 'POST',
       headers: {
@@ -146,7 +153,7 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
             {
               inline_data: {
                 mime_type: 'image/jpeg',
-                data: imageBase64.split(',')[1] || imageBase64,
+                data: base64Data,
               },
             },
           ],
@@ -158,17 +165,17 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
       }),
     });
 
+    console.log('Gemini response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.json();
       console.error('Gemini Vision API error:', errorData);
-      // Если Gemini не работает, возвращаем заглушку
-      return {
-        text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
-        nutrition: undefined
-      };
+      throw new Error(`Gemini API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
+    console.log('Gemini response:', data);
+
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать изображение.';
 
     const nutrition = parseNutrition(text);
@@ -176,10 +183,7 @@ export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse 
     return { text: cleanResponse(text), nutrition };
   } catch (error) {
     console.error('Gemini Image API error:', error);
-    return {
-      text: 'Не удалось проанализировать изображение. Попробуйте описать блюдо текстом.',
-      nutrition: undefined
-    };
+    throw error;
   }
 }
 

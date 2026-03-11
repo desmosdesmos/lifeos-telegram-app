@@ -154,9 +154,9 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
         if (type === 'nutrition') {
           const response: AIResponse & { nutrition?: any } = await analyzeFoodImage(base64);
           if (response.nutrition) {
-            setMessages((prev) => [...prev, { 
-              type: 'ai', 
-              text: `${response.text}\n\n📊 КБЖУ:\n• Калории: ${response.nutrition.calories} ккал\n• Белки: ${response.nutrition.protein}г\n• Жиры: ${response.nutrition.fat}г\n• Углеводы: ${response.nutrition.carbs}г` 
+            setMessages((prev) => [...prev, {
+              type: 'ai',
+              text: `${response.text}\n\n📊 КБЖУ:\n• Калории: ${response.nutrition.calories} ккал\n• Белки: ${response.nutrition.protein}г\n• Жиры: ${response.nutrition.fat}г\n• Углеводы: ${response.nutrition.carbs}г`
             }]);
           } else {
             setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
@@ -166,7 +166,12 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
           setMessages((prev) => [...prev, { type: 'ai', text: response.text }]);
         }
       } catch (error) {
-        setMessages((prev) => [...prev, { type: 'ai', text: 'Не удалось проанализировать изображение.' }]);
+        console.error('Photo analysis error:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Неизвестная ошибка';
+        setMessages((prev) => [...prev, { 
+          type: 'ai', 
+          text: `❌ Не удалось проанализировать изображение.\n\n${errorMsg}\n\nПопробуйте:\n• Сделать фото при хорошем освещении\n• Убедиться, что еда в фокусе\n• Попробовать ещё раз` 
+        }]);
       } finally {
         setIsTyping(false);
         if (fileInputRef.current) {
