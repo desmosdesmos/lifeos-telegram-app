@@ -112,55 +112,76 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды по фото (через Gemini 2.0 Flash - бесплатно)
+// Анализ еды по фото (Hugging Face Inference API - LLaVA)
+// Работает в РФ без VPN, бесплатно
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // Используем Gemini 2.0 Flash - бесплатная модель с поддержкой изображений
-  const API_KEY = 'AIzaSyABqcAz2nMNzfgaOJobolRMbP3R-MoGi4w';
-  const API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
+  // HF токен (бесплатный): https://huggingface.co/settings/tokens
+  const HF_TOKEN = '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';
+  const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
 
-  const prompt = `Analyze this food. Reply in Russian:
+  const prompt = `USER: <image>What is this food? Estimate calories, protein, fat, carbs.
+Answer in Russian format:
 Блюдо: [название]
 Вес: [граммы]г
 Калории: [число] ккал
 Белки: [число]г
 Жиры: [число]г
 Углеводы: [число]г
-Комментарий:`;
+Комментарий:
+
+ASSISTANT:`;
 
   try {
     const base64Data = imageBase64.includes(',') 
       ? imageBase64.split(',')[1] 
       : imageBase64;
 
-    console.log('Sending to Gemini 2.0, size:', base64Data.length);
+    console.log('Sending to HF LLaVA, size:', base64Data.length);
 
-    const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+    const response = await fetch(HF_API_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Authorization': `Bearer ${HF_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            { inline_data: { mime_type: 'image/jpeg', data: base64Data } }
-          ]
-        }]
+        inputs: prompt,
+        parameters: {
+          max_new_tokens: 200,
+          temperature: 0.7,
+        },
       }),
     });
 
-    console.log('Gemini status:', response.status);
+    console.log('HF LLaVA status:', response.status);
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      console.error('Gemini error:', error);
+      console.error('HF error:', error);
+      
+      // Если модель загружается (503), ждём
+      if (response.status === 503) {
+        throw new Error('Модель загружается (~30 сек). Попробуйте ещё раз.');
+      }
+      if (response.status === 401) {
+        throw new Error('Неверный HF токен. Получите на huggingface.co/settings/tokens');
+      }
       throw new Error(`API error: ${response.status}`);
     }
 
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Не удалось проанализировать.';
+    console.log('HF response:', data);
 
-    return { text: cleanResponse(text), nutrition: parseNutrition(text) };
+    const text = Array.isArray(data) 
+      ? data[0]?.generated_text || 'Не удалось проанализировать.'
+      : data?.generated_text || 'Не удалось проанализировать.';
+
+    // Убираем промпт, оставляем только ответ
+    const answer = text.split('ASSISTANT:').pop()?.trim() || text;
+
+    return { text: cleanResponse(answer), nutrition: parseNutrition(answer) };
   } catch (error) {
-    console.error('Gemini error:', error);
+    console.error('HF error:', error);
     throw error;
   }
 }
