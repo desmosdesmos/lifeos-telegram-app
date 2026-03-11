@@ -115,8 +115,8 @@ export async function sendMessage(
 // Анализ еды по фото (Hugging Face Inference API - LLaVA)
 // Работает в РФ без VPN, бесплатно
 export async function analyzeFoodImage(imageBase64: string): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  // HF токен (бесплатный): https://huggingface.co/settings/tokens
-  const HF_TOKEN = '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';
+  // HF токен из env: https://huggingface.co/settings/tokens
+  const HF_TOKEN = import.meta.env.VITE_HF_TOKEN || '';
   const HF_API_URL = 'https://api-inference.huggingface.co/models/llava-hf/llava-1.5-7b-hf';
 
   const prompt = `USER: <image>What is this food? Estimate calories, protein, fat, carbs.
