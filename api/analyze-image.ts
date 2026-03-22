@@ -38,41 +38,47 @@ export default async function handler(request: Request): Promise<Response> {
       });
     }
 
+    // Пробуем получить токен из переменной окружения
+    // Вариант 1: Готовый access token (обновлять вручную раз в 30 мин)
+    let accessToken = process.env.GIGACHAT_ACCESS_TOKEN;
+    
+    // Вариант 2: Client ID + Client Secret для автоматического получения токена
     const clientId = process.env.GIGACHAT_CLIENT_ID;
     const clientSecret = process.env.GIGACHAT_CLIENT_SECRET;
 
-    if (!clientId || !clientSecret) {
-      throw new Error('GigaChat credentials not configured');
+    if (!accessToken && clientId && clientSecret) {
+      // Получаем OAuth токен GigaChat
+      const credentials = btoa(`${clientId}:${clientSecret}`);
+      
+      const authResponse = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'RqUID': crypto.randomUUID(),
+        },
+        body: 'scope=GIGACHAT_API_PERS',
+      });
+
+      if (!authResponse.ok) {
+        const authError = await authResponse.text();
+        console.error('GigaChat auth error:', authError);
+        throw new Error(`Auth failed: ${authResponse.status} - ${authError}`);
+      }
+
+      const authData = await authResponse.json();
+      accessToken = authData.access_token;
+
+      if (!accessToken) {
+        throw new Error('No access token received');
+      }
     }
-
-    // Шаг 1: Получаем OAuth токен GigaChat
-    // Используем базовую авторизацию Client ID:Client Secret
-    const credentials = btoa(`${clientId}:${clientSecret}`);
-    
-    const authResponse = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'RqUID': crypto.randomUUID(),
-      },
-      body: 'scope=GIGACHAT_API_PERS',
-    });
-
-    if (!authResponse.ok) {
-      const authError = await authResponse.text();
-      console.error('GigaChat auth error:', authError);
-      throw new Error(`Auth failed: ${authResponse.status} - ${authError}`);
-    }
-
-    const authData = await authResponse.json();
-    const accessToken = authData.access_token;
 
     if (!accessToken) {
-      throw new Error('No access token received');
+      throw new Error('GigaChat credentials not configured. Set GIGACHAT_ACCESS_TOKEN or GIGACHAT_CLIENT_ID/SECRET');
     }
 
-    // Шаг 2: Анализ изображения через GigaChat Vision
+    // Анализ изображения через GigaChat Vision
     const visionResponse = await fetch('https://gigachat.devices.sberbank.ru/api/v2/chat/completions', {
       method: 'POST',
       headers: {
