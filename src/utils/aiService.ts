@@ -1,13 +1,10 @@
 // GigaChat AI Service (Сбер)
 // API: https://developers.sber.ru/docs/ru/gigachat
-// Работает из РФ, есть бесплатный тариф
-// Vision требует OAuth авторизации через серверный прокси
+// Работает в РФ, есть бесплатный тариф
+// Vision требует OAuth авторизации через Vercel Edge Function прокси
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-
-// Используем Groq для vision (CORS разрешён)
-const GROQ_VISION_MODEL = 'llama-3.2-11b-vision-preview';
+// Прокси для анализа фото (обходит CORS)
+const ANALYZE_IMAGE_PROXY = '/api/analyze-image';
 
 export interface AIResponse {
   text: string;
@@ -132,9 +129,8 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды/изображения по фото через Groq Vision API
-// GigaChat Vision требует OAuth и серверный вызов, поэтому используем Groq
-// Модель: llama-3.2-11b-vision-preview (актуальная vision модель Groq)
+// Анализ еды/изображения по фото через GigaChat Vision API
+// Использует Vercel Edge Function прокси для OAuth авторизации
 export async function analyzeFoodImage(
   imageBase64: string,
   prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию (калории, белки, жиры, углеводы)\n3. Качество еды (полезно/вредно)\n4. Рекомендации по улучшению\n\nОтветь кратко и структурированно.'
@@ -142,53 +138,28 @@ export async function analyzeFoodImage(
   console.log('Image analysis requested, size:', imageBase64.length);
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    // Вызов через прокси (Vercel Edge Function)
+    const response = await fetch(ANALYZE_IMAGE_PROXY, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: GROQ_VISION_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: prompt
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: `data:image/jpeg;base64,${imageBase64}`
-                }
-              }
-            ]
-          }
-        ],
-        temperature: 0.7,
-        max_tokens: 1000,
+        imageBase64,
+        prompt,
       }),
     });
 
-    console.log('Groq Vision response status:', response.status);
+    console.log('Proxy response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Groq Vision API error:', errorData);
-      
-      // Если модель недоступна, пробуем альтернативную
-      if (errorData.error?.code === 'model_decommissioned') {
-        console.log('Trying fallback vision model...');
-        return analyzeWithFallback(imageBase64, prompt);
-      }
-      
-      throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('Proxy error:', errorData);
+      throw new Error(`Анализ фото не удался: ${errorData.error || response.status}`);
     }
 
     const data = await response.json();
-    console.log('Groq Vision response data:', data);
+    console.log('GigaChat Vision response:', data);
 
     const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение сейчас.';
 
@@ -200,51 +171,9 @@ export async function analyzeFoodImage(
       nutrition
     };
   } catch (error) {
-    console.error('Groq Vision API error:', error);
+    console.error('Image analysis error:', error);
     throw error;
   }
-}
-
-// Fallback на альтернативную vision модель
-async function analyzeWithFallback(
-  imageBase64: string,
-  prompt: string
-): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
-  const fallbackModel = 'llava-v1.5-7b-4096-preview';
-  
-  const response = await fetch(GROQ_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${GROQ_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: fallbackModel,
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
-          ]
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`Fallback model also failed: ${response.status}`);
-  }
-
-  const data = await response.json();
-  const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение сейчас.';
-  
-  return { 
-    text: cleanResponse(text),
-    nutrition: extractNutritionFromText(text)
-  };
 }
 
 // Извлечение КБЖУ из текстового ответа
