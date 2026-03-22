@@ -1,10 +1,10 @@
 import { motion } from 'motion/react';
-import { ChevronLeft, Send, Sparkles } from 'lucide-react';
+import { ChevronLeft, Send, Sparkles, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useBottomBar } from '../context/BottomBarContext';
-import { sendMessage } from '../utils/aiService';
+import { sendMessage, analyzeImageWithContext, fileToBase64 } from '../utils/aiService';
 
 interface Message {
   type: 'user' | 'ai';
@@ -29,9 +29,11 @@ export function AIChat() {
   const navigate = useNavigate();
   const { state } = useApp();
   const { hide, show } = useBottomBar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -55,6 +57,51 @@ export function AIChat() {
       document.removeEventListener('focusout', handleFocusOut);
     };
   }, []);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка размера (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        text: '❌ Файл слишком большой. Максимальный размер: 5MB' 
+      }]);
+      return;
+    }
+
+    try {
+      setIsAnalyzingImage(true);
+
+      // Добавляем сообщение о загрузке
+      setMessages(prev => [...prev, { 
+        type: 'user', 
+        text: `📸 Загружено фото для анализа (${(file.size / 1024).toFixed(1)} KB)` 
+      }]);
+
+      // Конвертация в base64
+      const base64 = await fileToBase64(file);
+
+      // Анализ изображения с общим контекстом
+      const response = await analyzeImageWithContext(base64, 'other', 
+        'Проанализируй это изображение подробно. Что ты видишь? Какие рекомендации можешь дать пользователю LifeOS на основе этого фото? Ответь структурированно и полезно.'
+      );
+
+      setMessages(prev => [...prev, { type: 'ai', text: response.text }]);
+    } catch (error) {
+      console.error('Photo analysis error:', error);
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        text: `❌ Ошибка анализа фото: ${error instanceof Error ? error.message : 'Попробуйте снова'}` 
+      }]);
+    } finally {
+      setIsAnalyzingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
@@ -193,7 +240,35 @@ export function AIChat() {
       </div>
 
       {/* Input */}
-      <div className="px-6 pb-28 pt-4">
+      <div className="px-6 pb-28 pt-4 space-y-3">
+        {/* Photo Upload Button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isAnalyzingImage || isTyping}
+          className="w-full py-3 bg-[#4DA3FF]/20 border border-[#4DA3FF]/30 rounded-[16px] text-[#4DA3FF] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#4DA3FF]/30 transition-colors disabled:opacity-50"
+        >
+          {isAnalyzingImage ? (
+            <>
+              <div className="w-4 h-4 border-2 border-[#4DA3FF] border-t-transparent rounded-full animate-spin" />
+              <span>Анализирую фото...</span>
+            </>
+          ) : (
+            <>
+              <Camera className="w-4 h-4" />
+              <span>📸 Сделать фото для AI анализа</span>
+            </>
+          )}
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handlePhotoUpload}
+          className="hidden"
+        />
+
+        {/* Text Input */}
         <div className="glass-card rounded-[20px] p-2 flex items-center gap-2">
           <input
             type="text"

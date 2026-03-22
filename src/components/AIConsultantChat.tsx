@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, X } from 'lucide-react';
+import { Send, X, Camera } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
-import { sendMessage, getQuickTip } from '../utils/aiService';
+import { sendMessage, getQuickTip, analyzeImageWithContext, fileToBase64 } from '../utils/aiService';
 
 interface Message {
   type: 'user' | 'ai';
@@ -90,6 +90,7 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   const consultant = consultants[type];
   const questions = quickQuestions[type];
   const { hide, show } = useBottomBar();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       type: 'ai',
@@ -98,6 +99,7 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -112,6 +114,50 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Проверка размера (макс 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        text: '❌ Файл слишком большой. Максимальный размер: 5MB' 
+      }]);
+      return;
+    }
+
+    try {
+      setIsAnalyzingImage(true);
+
+      // Добавляем сообщение о загрузке
+      setMessages(prev => [...prev, { 
+        type: 'user', 
+        text: `📸 Загружено фото для анализа (${(file.size / 1024).toFixed(1)} KB)` 
+      }]);
+
+      // Конвертация в base64
+      const base64 = await fileToBase64(file);
+
+      // Анализ в зависимости от типа консультанта
+      const context = type === 'sleep' || type === 'goals' ? 'other' : type;
+      const response = await analyzeImageWithContext(base64, context);
+
+      setMessages(prev => [...prev, { type: 'ai', text: response.text }]);
+    } catch (error) {
+      console.error('Photo analysis error:', error);
+      setMessages(prev => [...prev, { 
+        type: 'ai', 
+        text: `❌ Ошибка анализа фото: ${error instanceof Error ? error.message : 'Попробуйте снова'}` 
+      }]);
+    } finally {
+      setIsAnalyzingImage(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
@@ -212,25 +258,34 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
           </div>
         )}
 
-        {/* Photo Upload for Nutrition - скрыто, т.к. CORS не работает */}
-        {/* type === 'nutrition' && (
-          <div className="px-6 pb-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="w-full py-3 bg-[#22C55E]/20 border border-[#22C55E]/30 rounded-[16px] text-[#22C55E] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#22C55E]/30 transition-colors"
-            >
-              📸 Сфотографировать еду для анализа
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handlePhotoUpload}
-              className="hidden"
-            />
-          </div>
-        ) */}
+        {/* Photo Upload Button - доступен для всех типов консультантов */}
+        <div className="px-6 pb-2">
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isAnalyzingImage}
+            className="w-full py-3 bg-[#4DA3FF]/20 border border-[#4DA3FF]/30 rounded-[16px] text-[#4DA3FF] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#4DA3FF]/30 transition-colors disabled:opacity-50"
+          >
+            {isAnalyzingImage ? (
+              <>
+                <div className="w-4 h-4 border-2 border-[#4DA3FF] border-t-transparent rounded-full animate-spin" />
+                <span>Анализирую фото...</span>
+              </>
+            ) : (
+              <>
+                <Camera className="w-4 h-4" />
+                <span>📸 Сделать фото для AI анализа</span>
+              </>
+            )}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handlePhotoUpload}
+            className="hidden"
+          />
+        </div>
 
         {/* Input */}
         <div className="p-4 border-t border-white/10">
