@@ -1,10 +1,10 @@
 // GigaChat AI Service (Сбер)
 // API: https://developers.sber.ru/docs/ru/gigachat
 // Работает в РФ, есть бесплатный тариф
-// Vision требует OAuth авторизации через Vercel Edge Function прокси
+// Все запросы через Vercel Edge Function прокси (обход CORS)
 
-// Прокси для анализа фото (обходит CORS)
-const ANALYZE_IMAGE_PROXY = '/api/analyze-image';
+// Прокси для всех AI запросов
+const AI_PROXY = '/api/chat';
 
 export interface AIResponse {
   text: string;
@@ -71,7 +71,7 @@ const systemPrompts = {
 Выдели 1-2 главных приоритета для работы.`,
 };
 
-// Отправка сообщения в GigaChat
+// Отправка сообщения в GigaChat через прокси
 export async function sendMessage(
   message: string,
   context: {
@@ -86,46 +86,36 @@ export async function sendMessage(
   try {
     console.log('Sending to GigaChat:', prompt.substring(0, 100));
 
-    const GIGACHAT_API_KEY = import.meta.env.VITE_GIGACHAT_API_KEY;
-    const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v2/chat/completions';
-
-    const response = await fetch(GIGACHAT_API_URL, {
+    const response = await fetch(AI_PROXY, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GIGACHAT_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'GigaChat',
+        systemPrompt,
         messages: [
-          { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
-        temperature: 0.7,
-        max_tokens: 500,
       }),
     });
 
-    console.log('GigaChat response status:', response.status);
+    console.log('Proxy response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('GigaChat API error:', errorData);
-      throw new Error(`GigaChat API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('Proxy error:', errorData);
+      throw new Error(`AI ошибка: ${errorData.error || response.status}`);
     }
 
     const data = await response.json();
-    console.log('GigaChat response data:', data);
+    console.log('GigaChat response:', data);
 
     const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
 
     return { text: cleanResponse(text) };
   } catch (error) {
-    console.error('GigaChat API error:', error);
-    return {
-      text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' +
-            (error instanceof Error ? error.message : 'Неизвестная ошибка')
-    };
+    console.error('AI Chat error:', error);
+    throw error;
   }
 }
 
@@ -138,8 +128,7 @@ export async function analyzeFoodImage(
   console.log('Image analysis requested, size:', imageBase64.length);
 
   try {
-    // Вызов через прокси (Vercel Edge Function)
-    const response = await fetch(ANALYZE_IMAGE_PROXY, {
+    const response = await fetch(AI_PROXY, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
