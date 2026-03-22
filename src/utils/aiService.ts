@@ -1,10 +1,10 @@
-// Groq AI Service
-// API: https://console.groq.com/docs
-// Быстрее Gemini, работает из РФ, бесплатно
-// Поддерживает vision модели для анализа изображений
+// GigaChat AI Service (Сбер)
+// API: https://developers.sber.ru/docs/ru/gigachat
+// Поддерживает vision (GigaChat Pro с анализом изображений)
+// Работает из РФ, есть бесплатный тариф
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GIGACHAT_API_KEY = import.meta.env.VITE_GIGACHAT_API_KEY;
+const GIGACHAT_API_URL = 'https://gigachat.devices.sberbank.ru/api/v2/chat/completions';
 
 export interface AIResponse {
   text: string;
@@ -71,7 +71,7 @@ const systemPrompts = {
 Выдели 1-2 главных приоритета для работы.`,
 };
 
-// Отправка сообщения в Groq
+// Отправка сообщения в GigaChat
 export async function sendMessage(
   message: string,
   context: {
@@ -84,43 +84,41 @@ export async function sendMessage(
   const prompt = buildPrompt(message, context);
 
   try {
-    console.log('Sending to Groq:', prompt.substring(0, 100));
+    console.log('Sending to GigaChat:', prompt.substring(0, 100));
 
-    const response = await fetch(GROQ_API_URL, {
+    const response = await fetch(GIGACHAT_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${GIGACHAT_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model: 'GigaChat-Pro',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt }
         ],
         temperature: 0.7,
         max_tokens: 500,
-        top_p: 1,
-        stream: false,
       }),
     });
 
-    console.log('Groq response status:', response.status);
+    console.log('GigaChat response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Groq API error:', errorData);
-      throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('GigaChat API error:', errorData);
+      throw new Error(`GigaChat API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
-    console.log('Groq response data:', data);
+    console.log('GigaChat response data:', data);
 
     const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
 
     return { text: cleanResponse(text) };
   } catch (error) {
-    console.error('Groq API error:', error);
+    console.error('GigaChat API error:', error);
     return {
       text: 'Произошла ошибка. Проверьте соединение и попробуйте снова.\n\n' +
             (error instanceof Error ? error.message : 'Неизвестная ошибка')
@@ -128,8 +126,8 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды/изображения по фото через Groq Vision API
-// Поддерживает модели: llava-1.5-7b, llama-3.2-90b-vision-preview
+// Анализ еды/изображения по фото через GigaChat Vision API
+// GigaChat Pro поддерживает анализ изображений
 export async function analyzeFoodImage(
   imageBase64: string,
   prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию (калории, белки, жиры, углеводы)\n3. Качество еды (полезно/вредно)\n4. Рекомендации по улучшению\n\nОтветь кратко и структурированно.'
@@ -137,14 +135,15 @@ export async function analyzeFoodImage(
   console.log('Image analysis requested, size:', imageBase64.length);
 
   try {
-    const response = await fetch(GROQ_API_URL, {
+    // GigaChat принимает изображения в формате base64 в messages
+    const response = await fetch(GIGACHAT_API_URL, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${GROQ_API_KEY}`,
+        'Authorization': `Bearer ${GIGACHAT_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'llama-3.2-90b-vision-preview',
+        model: 'GigaChat-Pro',
         messages: [
           {
             role: 'user',
@@ -164,21 +163,19 @@ export async function analyzeFoodImage(
         ],
         temperature: 0.7,
         max_tokens: 1000,
-        top_p: 1,
-        stream: false,
       }),
     });
 
-    console.log('Groq Vision response status:', response.status);
+    console.log('GigaChat Vision response status:', response.status);
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('Groq Vision API error:', errorData);
-      throw new Error(`Groq API error: ${response.status} - ${JSON.stringify(errorData)}`);
+      console.error('GigaChat Vision API error:', errorData);
+      throw new Error(`GigaChat API error: ${response.status} - ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
-    console.log('Groq Vision response data:', data);
+    console.log('GigaChat Vision response data:', data);
 
     const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение сейчас.';
 
@@ -190,7 +187,7 @@ export async function analyzeFoodImage(
       nutrition
     };
   } catch (error) {
-    console.error('Groq Vision API error:', error);
+    console.error('GigaChat Vision API error:', error);
     throw error;
   }
 }
