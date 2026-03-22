@@ -1,9 +1,9 @@
 // GigaChat AI Service (Сбер)
 // API: https://developers.sber.ru/docs/ru/gigachat
 // Работает в РФ через собственный прокси-сервер
-// Сервер: http://37.252.21.153:3000
+// Сервер: https://api.npdetail.ru:3000
 
-const AI_PROXY = 'http://37.252.21.153:3000/api/chat';
+const AI_PROXY = 'https://api.npdetail.ru:3000/api/chat';
 
 export interface AIResponse {
   text: string;
