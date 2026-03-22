@@ -2,30 +2,31 @@
 // Обходит CORS ограничения для текста и фото
 // Работает в РФ бесплатно
 
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
 export const config = {
-  runtime: 'nodejs',
+  api: {
+    bodyParser: true,
+    externalResolver: true,
+  },
 };
 
-export default async function handler(request: Request): Promise<Response> {
-  const corsHeaders = {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // Разрешаем CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-  if (request.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
   }
 
-  if (request.method !== 'POST') {
-    return new Response('Method not allowed', { 
-      status: 405,
-      headers: corsHeaders
-    });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { messages, systemPrompt, imageBase64, prompt } = await request.json();
+    const { messages, systemPrompt, imageBase64, prompt } = req.body;
 
     const clientId = process.env.GIGACHAT_CLIENT_ID;
     const clientSecret = process.env.GIGACHAT_CLIENT_SECRET;
@@ -35,13 +36,14 @@ export default async function handler(request: Request): Promise<Response> {
 
     if (!clientId || !clientSecret) {
       console.error('No credentials configured');
-      throw new Error('GigaChat credentials not configured');
+      return res.status(500).json({ error: 'GigaChat credentials not configured' });
     }
 
     // Получаем OAuth токен
-    const credentials = btoa(`${clientId}:${clientSecret}`);
+    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
     
     console.log('Requesting OAuth token...');
+    
     const authResponse = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
       method: 'POST',
       headers: {
@@ -57,7 +59,7 @@ export default async function handler(request: Request): Promise<Response> {
     if (!authResponse.ok) {
       const authError = await authResponse.text();
       console.error('GigaChat auth error:', authError);
-      throw new Error(`Auth failed: ${authResponse.status}`);
+      return res.status(500).json({ error: `Auth failed: ${authResponse.status}` });
     }
 
     const authData = await authResponse.json();
@@ -66,7 +68,7 @@ export default async function handler(request: Request): Promise<Response> {
     console.log('Access token received:', !!accessToken);
 
     if (!accessToken) {
-      throw new Error('No access token received');
+      return res.status(500).json({ error: 'No access token received' });
     }
 
     // Формируем запрос к GigaChat
@@ -119,32 +121,19 @@ export default async function handler(request: Request): Promise<Response> {
     if (!response.ok) {
       const errorData = await response.text();
       console.error('GigaChat API error:', errorData);
-      throw new Error(`GigaChat error: ${response.status} - ${errorData}`);
+      return res.status(500).json({ error: `GigaChat error: ${response.status}` });
     }
 
     const data = await response.json();
     console.log('GigaChat response success');
     
-    return new Response(JSON.stringify(data), {
-      headers: {
-        'Content-Type': 'application/json',
-        ...corsHeaders,
-      },
-    });
+    return res.status(200).json(data);
   } catch (error) {
     console.error('Chat error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : undefined;
     
-    return new Response(JSON.stringify({ 
+    return res.status(500).json({ 
       error: errorMessage,
-      stack: errorStack
-    }), { 
-      status: 500,
-      headers: { 
-        'Content-Type': 'application/json',
-        ...corsHeaders
-      }
     });
   }
 }
