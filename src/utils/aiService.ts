@@ -1,9 +1,8 @@
 // GigaChat AI Service (Сбер)
 // API: https://developers.sber.ru/docs/ru/gigachat
 // Работает в РФ, есть бесплатный тариф
-// Все запросы через Vercel Edge Function прокси (обход CORS)
+// Все запросы через Vercel API прокси (OAuth с Client ID/Secret)
 
-// Прокси для всех AI запросов
 const AI_PROXY = '/api/chat';
 
 export interface AIResponse {
@@ -28,7 +27,6 @@ export function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.onload = () => {
       const result = reader.result as string;
-      // Удаляем data:image/jpeg;base64, префикс
       const base64 = result.split(',')[1] || result;
       resolve(base64);
     };
@@ -93,9 +91,7 @@ export async function sendMessage(
       },
       body: JSON.stringify({
         systemPrompt,
-        messages: [
-          { role: 'user', content: prompt }
-        ],
+        messages: [{ role: 'user', content: prompt }],
       }),
     });
 
@@ -108,8 +104,6 @@ export async function sendMessage(
     }
 
     const data = await response.json();
-    console.log('GigaChat response:', data);
-
     const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
 
     return { text: cleanResponse(text) };
@@ -119,11 +113,10 @@ export async function sendMessage(
   }
 }
 
-// Анализ еды/изображения по фото через GigaChat Vision API
-// Использует Vercel Edge Function прокси для OAuth авторизации
+// Анализ фото через GigaChat Vision API (через прокси)
 export async function analyzeFoodImage(
   imageBase64: string,
-  prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию (калории, белки, жиры, углеводы)\n3. Качество еды (полезно/вредно)\n4. Рекомендации по улучшению\n\nОтветь кратко и структурированно.'
+  prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию\n3. Качество еды\n4. Рекомендации\n\nОтветь кратко.'
 ): Promise<AIResponse & { nutrition?: ImageAnalysis['nutrition'] }> {
   console.log('Image analysis requested, size:', imageBase64.length);
 
@@ -148,17 +141,11 @@ export async function analyzeFoodImage(
     }
 
     const data = await response.json();
-    console.log('GigaChat Vision response:', data);
+    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение.';
 
-    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение сейчас.';
-
-    // Попытка извлечь КБЖУ из ответа
     const nutrition = extractNutritionFromText(text);
 
-    return { 
-      text: cleanResponse(text),
-      nutrition
-    };
+    return { text: cleanResponse(text), nutrition };
   } catch (error) {
     console.error('Image analysis error:', error);
     throw error;
