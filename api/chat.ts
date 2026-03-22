@@ -1,9 +1,9 @@
-// Vercel Edge Function для AI запросов к GigaChat
+// API Route для AI запросов к GigaChat
 // Обходит CORS ограничения для текста и фото
 // Работает в РФ бесплатно
 
 export const config = {
-  runtime: 'edge',
+  runtime: 'nodejs',
 };
 
 export default async function handler(request: Request): Promise<Response> {
@@ -30,13 +30,18 @@ export default async function handler(request: Request): Promise<Response> {
     const clientId = process.env.GIGACHAT_CLIENT_ID;
     const clientSecret = process.env.GIGACHAT_CLIENT_SECRET;
 
+    console.log('Client ID exists:', !!clientId);
+    console.log('Client Secret exists:', !!clientSecret);
+
     if (!clientId || !clientSecret) {
+      console.error('No credentials configured');
       throw new Error('GigaChat credentials not configured');
     }
 
     // Получаем OAuth токен
     const credentials = btoa(`${clientId}:${clientSecret}`);
     
+    console.log('Requesting OAuth token...');
     const authResponse = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
       method: 'POST',
       headers: {
@@ -47,6 +52,8 @@ export default async function handler(request: Request): Promise<Response> {
       body: 'scope=GIGACHAT_API_PERS',
     });
 
+    console.log('Auth response status:', authResponse.status);
+
     if (!authResponse.ok) {
       const authError = await authResponse.text();
       console.error('GigaChat auth error:', authError);
@@ -55,6 +62,8 @@ export default async function handler(request: Request): Promise<Response> {
 
     const authData = await authResponse.json();
     const accessToken = authData.access_token;
+
+    console.log('Access token received:', !!accessToken);
 
     if (!accessToken) {
       throw new Error('No access token received');
@@ -65,6 +74,7 @@ export default async function handler(request: Request): Promise<Response> {
 
     if (imageBase64) {
       // Запрос с изображением
+      console.log('Processing image analysis request');
       requestBody = {
         model: 'GigaChat-Pro',
         messages: [{
@@ -79,6 +89,7 @@ export default async function handler(request: Request): Promise<Response> {
       };
     } else {
       // Текстовый запрос
+      console.log('Processing text request');
       const allMessages = [
         { role: 'system', content: systemPrompt || 'Ты полезный ассистент.' },
         ...(messages || [])
@@ -93,6 +104,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     // Вызов GigaChat API
+    console.log('Calling GigaChat API...');
     const response = await fetch('https://gigachat.devices.sberbank.ru/api/v2/chat/completions', {
       method: 'POST',
       headers: {
@@ -102,6 +114,8 @@ export default async function handler(request: Request): Promise<Response> {
       body: JSON.stringify(requestBody),
     });
 
+    console.log('GigaChat response status:', response.status);
+
     if (!response.ok) {
       const errorData = await response.text();
       console.error('GigaChat API error:', errorData);
@@ -109,6 +123,7 @@ export default async function handler(request: Request): Promise<Response> {
     }
 
     const data = await response.json();
+    console.log('GigaChat response success');
     
     return new Response(JSON.stringify(data), {
       headers: {
@@ -118,8 +133,12 @@ export default async function handler(request: Request): Promise<Response> {
     });
   } catch (error) {
     console.error('Chat error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
     return new Response(JSON.stringify({ 
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: errorMessage,
+      stack: errorStack
     }), { 
       status: 500,
       headers: { 
