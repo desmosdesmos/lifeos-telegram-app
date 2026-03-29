@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { sendLoginNotification } from '../utils/sendLoginNotification';
 
 interface TelegramUser {
   id: number;
@@ -44,6 +45,7 @@ export function useTelegramWebApp() {
   const [userId, setUserId] = useState<number | null>(null);
   const [userName, setUserName] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string | null>(null);
+  const [notificationSent, setNotificationSent] = useState(false);
 
   useEffect(() => {
     if (window.Telegram?.WebApp) {
@@ -59,10 +61,16 @@ export function useTelegramWebApp() {
           .filter(Boolean)
           .join(' ') || tg.initDataUnsafe.user.username || null;
         setUserName(name);
-        
+
         // Получаем аватарку из Telegram
         if (tg.initDataUnsafe.user.photo_url) {
           setUserAvatar(tg.initDataUnsafe.user.photo_url);
+        }
+
+        // Отправляем уведомление о входе (один раз за сессию)
+        if (!notificationSent) {
+          sendLoginNotification(tg.initDataUnsafe.user);
+          setNotificationSent(true);
         }
       }
 

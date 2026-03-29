@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(certutil *)",
+      "Bash(timeout *)",
+      "Bash(vercel *)",
+      "Bash(start *)",
+      "Bash(curl *)",
+      "Bash(dir *)",
+      "Bash(npm install)",
+      "Bash(copy *)",
+      "Bash(scp *)",
+      "Bash(taskkill *)",
+      "Bash(node *)",
+      "Bash(true)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push)"
+    ]
+  },
+  "$version": 3
+}

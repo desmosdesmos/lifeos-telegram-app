@@ -14,4 +14,8 @@ export default defineConfig({
     },
   },
   base: './',
+  define: {
+    'import.meta.env.VITE_TELEGRAM_BOT_TOKEN': JSON.stringify(process.env.VITE_TELEGRAM_BOT_TOKEN || ''),
+    'import.meta.env.VITE_TELEGRAM_ADMIN_ID': JSON.stringify(process.env.VITE_TELEGRAM_ADMIN_ID || ''),
+  },
 })

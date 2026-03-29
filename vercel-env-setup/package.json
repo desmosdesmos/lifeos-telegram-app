@@ -1,0 +1,11 @@
+{
+  "name": "vercel-env-setup",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "add-env": "node add-env.js"
+  },
+  "dependencies": {
+    "@vercel/sdk": "^1.1.0"
+  }
+}
