@@ -1,5 +1,5 @@
-// API Route для AI запросов к GigaChat
-// Обходит CORS и использует OAuth с Client ID/Secret
+// API Route для AI запросов к Google Gemini API
+// Документация: https://ai.google.dev/gemini-api/docs
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -26,131 +26,144 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { messages, systemPrompt, imageBase64, prompt } = req.body;
 
-    const clientId = process.env.GIGACHAT_CLIENT_ID;
-    const clientSecret = process.env.GIGACHAT_CLIENT_SECRET;
+    const apiKey = process.env.GEMINI_API_KEY;
 
-    console.log('=== GigaChat API Request ===');
-    console.log('Client ID exists:', !!clientId);
-    console.log('Client Secret exists:', !!clientSecret);
+    console.log('=== Gemini API Request ===');
+    console.log('API Key exists:', !!apiKey);
 
-    if (!clientId || !clientSecret) {
-      console.error('❌ No credentials configured');
-      return res.status(500).json({ error: 'GigaChat credentials not configured' });
+    if (!apiKey) {
+      console.error('❌ No API key configured');
+      return res.status(500).json({ error: 'Gemini API key not configured' });
     }
 
-    // Получаем OAuth токен
-    const credentials = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
-    
-    console.log('📡 Requesting OAuth token from Sber...');
-    
-    let authResponse: Response;
-    try {
-      authResponse = await fetch('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'RqUID': crypto.randomUUID(),
-        },
-        body: 'scope=GIGACHAT_API_PERS',
-        // Отключаем таймаут
-        signal: AbortSignal.timeout(30000),
-      });
-    } catch (fetchError: any) {
-      console.error('❌ OAuth fetch failed:', fetchError.message);
-      return res.status(500).json({ 
-        error: 'Cannot connect to GigaChat OAuth',
-        details: fetchError.message 
-      });
-    }
-
-    console.log('Auth response status:', authResponse.status);
-
-    if (!authResponse.ok) {
-      const authError = await authResponse.text();
-      console.error('❌ GigaChat auth error:', authError);
-      return res.status(500).json({ error: `Auth failed: ${authResponse.status}` });
-    }
-
-    const authData = await authResponse.json();
-    const accessToken = authData.access_token;
-
-    console.log('✅ Access token received:', !!accessToken);
-
-    if (!accessToken) {
-      return res.status(500).json({ error: 'No access token received' });
-    }
-
-    // Формируем запрос к GigaChat
+    // Формируем запрос к Gemini API
     let requestBody: any;
+    let model = 'gemini-2.0-flash';
 
     if (imageBase64) {
       console.log('📸 Processing image analysis request');
+      model = 'gemini-2.0-flash';
       requestBody = {
-        model: 'GigaChat-Pro',
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt || 'Проанализируй изображение' },
-            { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${imageBase64}` } }
+        contents: [{
+          parts: [
+            { text: prompt || 'Проанализируй изображение' },
+            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
           ]
         }],
-        temperature: 0.7,
-        max_tokens: 1000,
+        generationConfig: {
+          maxOutputTokens: 1000,
+          temperature: 0.7,
+        },
       };
     } else {
       console.log('💬 Processing text request');
-      const allMessages = [
-        { role: 'system', content: systemPrompt || 'Ты полезный ассистент.' },
-        ...(messages || [])
-      ];
+      model = 'gemini-2.0-flash';
+      
+      // Формируем сообщения в формате Gemini
+      const contents = [];
+      
+      // System prompt как первое сообщение
+      if (systemPrompt) {
+        contents.push({
+          role: 'user',
+          parts: [{ text: `Инструкция: ${systemPrompt}` }]
+        });
+        contents.push({
+          role: 'model',
+          parts: [{ text: 'Понял, буду следовать инструкции.' }]
+        });
+      }
+      
+      // Добавляем сообщения пользователя
+      for (const msg of messages || []) {
+        contents.push({
+          role: msg.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: msg.content }]
+        });
+      }
 
       requestBody = {
-        model: 'GigaChat',
-        messages: allMessages,
-        temperature: 0.7,
-        max_tokens: 500,
+        contents,
+        generationConfig: {
+          maxOutputTokens: 500,
+          temperature: 0.7,
+        },
       };
     }
 
-    // Вызов GigaChat API
-    console.log('📡 Calling GigaChat API...');
+    // Вызов Gemini API
+    console.log('📡 Calling Gemini API...');
     let response: Response;
     try {
-      response = await fetch('https://gigachat.devices.sberbank.ru/api/v2/chat/completions', {
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(30000),
       });
     } catch (fetchError: any) {
-      console.error('❌ GigaChat API fetch failed:', fetchError.message);
-      return res.status(500).json({ 
-        error: 'Cannot connect to GigaChat API',
-        details: fetchError.message 
+      console.error('❌ Gemini API fetch failed:', fetchError.message);
+      return res.status(500).json({
+        error: 'Cannot connect to Gemini API',
+        details: fetchError.message
       });
     }
 
-    console.log('GigaChat response status:', response.status);
+    console.log('Gemini response status:', response.status);
+
+    const responseText = await response.text();
+    console.log('Gemini raw response:', responseText.substring(0, 500));
 
     if (!response.ok) {
-      const errorData = await response.text();
-      console.error('❌ GigaChat API error:', errorData);
-      return res.status(500).json({ error: `GigaChat error: ${response.status}` });
+      console.error('❌ Gemini API error:', responseText);
+      let errorMessage = `Gemini error: ${response.status}`;
+      
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error?.message || errorMessage;
+      } catch {
+        errorMessage = responseText || errorMessage;
+      }
+      
+      return res.status(500).json({ error: errorMessage });
     }
 
-    const data = await response.json();
-    console.log('✅ GigaChat response success');
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('❌ Failed to parse Gemini response:', parseError);
+      return res.status(500).json({ 
+        error: 'Invalid response from Gemini API',
+        rawResponse: responseText.substring(0, 200)
+      });
+    }
     
-    return res.status(200).json(data);
+    console.log('✅ Gemini response success');
+
+    // Конвертируем ответ Gemini в формат OpenAI для совместимости
+    const openaiFormat = {
+      id: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+      choices: [{
+        message: {
+          content: data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, я не могу ответить сейчас.'
+        }
+      }],
+      usage: data.usageMetadata ? {
+        prompt_tokens: data.usageMetadata.promptTokenCount || 0,
+        completion_tokens: data.usageMetadata.candidatesTokenCount || 0,
+        total_tokens: data.usageMetadata.totalTokenCount || 0,
+      } : undefined,
+    };
+
+    return res.status(200).json(openaiFormat);
   } catch (error) {
     console.error('❌ Chat error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       error: errorMessage,
     });
   }

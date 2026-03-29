@@ -1,9 +1,8 @@
-// GigaChat AI Service (Сбер)
-// API: https://developers.sber.ru/docs/ru/gigachat
-// Работает в РФ через собственный прокси-сервер
-// Сервер: https://api.npdetail.ru:3000
+// Qwen AI Service
+// API: https://www.aliyun.com/product/dashscope
+// Использует Vercel API route /api/chat
 
-const AI_PROXY = 'https://api.npdetail.ru:3000/api/chat';
+const AI_PROXY = '/api/chat';
 
 export interface AIResponse {
   text: string;
@@ -69,7 +68,7 @@ const systemPrompts = {
 Выдели 1-2 главных приоритета для работы.`,
 };
 
-// Отправка сообщения в GigaChat через прокси
+// Отправка сообщения в Qwen через API route
 export async function sendMessage(
   message: string,
   context: {
@@ -82,7 +81,7 @@ export async function sendMessage(
   const prompt = buildPrompt(message, context);
 
   try {
-    console.log('Sending to GigaChat:', prompt.substring(0, 100));
+    console.log('Sending to Gemini:', prompt.substring(0, 100));
 
     const response = await fetch(AI_PROXY, {
       method: 'POST',
@@ -97,14 +96,30 @@ export async function sendMessage(
 
     console.log('Proxy response status:', response.status);
 
+    const responseText = await response.text();
+    console.log('Proxy raw response:', responseText.substring(0, 500));
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Proxy error:', errorData);
-      throw new Error(`AI ошибка: ${errorData.error || response.status}`);
+      let errorMessage = `AI ошибка: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        errorMessage = responseText || errorMessage;
+      }
+      console.error('Proxy error:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.';
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response:', parseError);
+      throw new Error('Неверный формат ответа от сервера');
+    }
+
+    const text = data.choices?.[0]?.message?.content || data.id || 'Извините, я не могу ответить сейчас.';
 
     return { text: cleanResponse(text) };
   } catch (error) {
@@ -113,7 +128,7 @@ export async function sendMessage(
   }
 }
 
-// Анализ фото через GigaChat Vision API (через прокси)
+// Анализ фото через Gemini Vision API
 export async function analyzeFoodImage(
   imageBase64: string,
   prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию\n3. Качество еды\n4. Рекомендации\n\nОтветь кратко.'
@@ -134,14 +149,30 @@ export async function analyzeFoodImage(
 
     console.log('Proxy response status:', response.status);
 
+    const responseText = await response.text();
+    console.log('Proxy raw response:', responseText.substring(0, 500));
+
     if (!response.ok) {
-      const errorData = await response.json();
-      console.error('Proxy error:', errorData);
-      throw new Error(`Анализ фото не удался: ${errorData.error || response.status}`);
+      let errorMessage = `Анализ фото не удался: ${response.status}`;
+      try {
+        const errorData = JSON.parse(responseText);
+        errorMessage = errorData.error || errorMessage;
+      } catch {
+        errorMessage = responseText || errorMessage;
+      }
+      console.error('Proxy error:', errorMessage);
+      throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    const text = data.choices?.[0]?.message?.content || 'Извините, я не могу проанализировать изображение.';
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError) {
+      console.error('Failed to parse response:', parseError);
+      throw new Error('Неверный формат ответа от сервера');
+    }
+
+    const text = data.choices?.[0]?.message?.content || data.id || 'Извините, я не могу проанализировать изображение.';
 
     const nutrition = extractNutritionFromText(text);
 
