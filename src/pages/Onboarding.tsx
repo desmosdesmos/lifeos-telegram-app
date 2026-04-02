@@ -59,50 +59,99 @@ const steps = [
 export function Onboarding({ onComplete }: OnboardingProps) {
   return (
     <div className="fixed inset-0 z-50 bg-[#0B0B0F] overflow-y-auto">
-      <div className="min-h-screen flex flex-col">
+      {/* Animated background */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="gradient-orb gradient-orb-1" style={{ top: '10%', left: '-10%', width: '300px', height: '300px' }} />
+        <div className="gradient-orb gradient-orb-2" style={{ bottom: '20%', right: '-5%', width: '250px', height: '250px' }} />
+      </div>
+
+      <div className="relative min-h-screen flex flex-col">
         {/* Header */}
-        <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#4DA3FF] to-[#22C55E] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold">LifeOS</span>
-          </div>
-          <button
+        <motion.div 
+          className="p-6 flex items-center justify-between"
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <motion.div 
+            className="flex items-center gap-2"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <motion.div 
+              className="w-10 h-10 rounded-[14px] bg-gradient-to-br from-[#4DA3FF] to-[#22C55E] flex items-center justify-center glow-blue"
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              transition={{ type: 'spring', stiffness: 400 }}
+            >
+              <Sparkles className="w-5 h-5 text-white" />
+            </motion.div>
+            <span className="text-xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">LifeOS</span>
+          </motion.div>
+          <motion.button
             onClick={onComplete}
             className="text-white/40 text-sm hover:text-white/70 transition-colors"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.4 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
             Пропустить
-          </button>
-        </div>
+          </motion.button>
+        </motion.div>
 
         {/* Steps */}
         <div className="flex-1 px-6 py-4">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {steps.map((step, index) => {
               const Icon = step.icon;
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="glass-card rounded-[20px] p-5"
+                  initial={{ opacity: 0, x: -30, scale: 0.95 }}
+                  animate={{ opacity: 1, x: 0, scale: 1 }}
+                  transition={{ delay: index * 0.08, duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
+                  whileHover={{ x: 5, scale: 1.01 }}
+                  className="glass-card rounded-[24px] p-5 relative overflow-hidden group"
                 >
-                  <div className="flex items-center gap-4">
-                    <div
-                      className="w-14 h-14 rounded-[16px] flex items-center justify-center flex-shrink-0"
+                  {/* Hover gradient */}
+                  <div 
+                    className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                    style={{
+                      background: `radial-gradient(circle at top right, ${step.color}20, transparent 70%)`
+                    }}
+                  />
+                  
+                  {/* Animated orb */}
+                  <motion.div 
+                    className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-[50px] opacity-0 group-hover:opacity-30 transition-opacity duration-500"
+                    style={{ backgroundColor: step.color }}
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 4, repeat: Infinity }}
+                  />
+                  
+                  <div className="relative z-10 flex items-center gap-4">
+                    <motion.div
+                      className="w-14 h-14 rounded-[18px] flex items-center justify-center flex-shrink-0 backdrop-blur-xl"
                       style={{ backgroundColor: `${step.color}20` }}
+                      whileHover={{ scale: 1.1, rotate: 8 }}
+                      transition={{ type: 'spring', stiffness: 400 }}
                     >
-                      <Icon className="w-7 h-7" style={{ color: step.color }} />
-                    </div>
+                      <Icon className="w-7 h-7" style={{ color: step.color }} strokeWidth={2.5} />
+                    </motion.div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium mb-1">{step.title}</h3>
+                      <h3 className="text-lg font-semibold mb-1 text-white">{step.title}</h3>
                       <p className="text-white/60 text-sm leading-relaxed">{step.description}</p>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[#22C55E]/20 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-[#22C55E]" />
-                    </div>
+                    <motion.div 
+                      className="w-9 h-9 rounded-full bg-[#22C55E]/20 flex items-center justify-center"
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.5 + index * 0.08, type: 'spring' }}
+                    >
+                      <Check className="w-5 h-5 text-[#22C55E]" strokeWidth={3} />
+                    </motion.div>
                   </div>
                 </motion.div>
               );
@@ -115,17 +164,28 @@ export function Onboarding({ onComplete }: OnboardingProps) {
           <motion.button
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.8, duration: 0.6 }}
+            whileHover={{ scale: 1.02, y: -2 }}
             whileTap={{ scale: 0.98 }}
             onClick={onComplete}
-            className="w-full py-4 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[20px] text-white font-bold text-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[24px] text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transition-all duration-300"
           >
             Начать использовать
-            <ChevronRight className="w-5 h-5" />
+            <motion.div
+              animate={{ x: [0, 4, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}
+            >
+              <ChevronRight className="w-5 h-5" />
+            </motion.div>
           </motion.button>
-          <p className="text-center text-white/40 text-xs mt-4">
+          <motion.p 
+            className="text-center text-white/40 text-xs mt-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+          >
             Настройте профиль после завершения
-          </p>
+          </motion.p>
         </div>
       </div>
     </div>

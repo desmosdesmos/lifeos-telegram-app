@@ -1,5 +1,6 @@
-// API Route для AI запросов к Google Gemini API
-// Документация: https://ai.google.dev/gemini-api/docs
+// API Route для AI запросов к Groq API
+// Документация: https://console.groq.com/docs
+// Модели: llama, mixtral, gemma
 
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
@@ -26,107 +27,82 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const { messages, systemPrompt, imageBase64, prompt } = req.body;
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
 
-    console.log('=== Gemini API Request ===');
+    console.log('=== Groq API Request ===');
     console.log('API Key exists:', !!apiKey);
 
     if (!apiKey) {
       console.error('❌ No API key configured');
-      return res.status(500).json({ error: 'Gemini API key not configured' });
+      return res.status(500).json({ error: 'Groq API key not configured' });
     }
 
-    // Формируем запрос к Gemini API
-    let requestBody: any;
-    let model = 'gemini-2.0-flash';
-
+    // Groq не поддерживает изображения напрямую, только текст
     if (imageBase64) {
-      console.log('📸 Processing image analysis request');
-      model = 'gemini-2.0-flash';
-      requestBody = {
-        contents: [{
-          parts: [
-            { text: prompt || 'Проанализируй изображение' },
-            { inline_data: { mime_type: 'image/jpeg', data: imageBase64 } }
-          ]
-        }],
-        generationConfig: {
-          maxOutputTokens: 1000,
-          temperature: 0.7,
-        },
-      };
-    } else {
-      console.log('💬 Processing text request');
-      model = 'gemini-2.0-flash';
-      
-      // Формируем сообщения в формате Gemini
-      const contents = [];
-      
-      // System prompt как первое сообщение
-      if (systemPrompt) {
-        contents.push({
-          role: 'user',
-          parts: [{ text: `Инструкция: ${systemPrompt}` }]
-        });
-        contents.push({
-          role: 'model',
-          parts: [{ text: 'Понял, буду следовать инструкции.' }]
-        });
-      }
-      
-      // Добавляем сообщения пользователя
-      for (const msg of messages || []) {
-        contents.push({
-          role: msg.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: msg.content }]
-        });
-      }
-
-      requestBody = {
-        contents,
-        generationConfig: {
-          maxOutputTokens: 500,
-          temperature: 0.7,
-        },
-      };
+      console.log('⚠️ Image analysis not supported by Groq');
+      return res.status(400).json({ 
+        error: 'Groq не поддерживает анализ изображений. Используйте Gemini для этой функции.' 
+      });
     }
 
-    // Вызов Gemini API
-    console.log('📡 Calling Gemini API...');
+    // Формируем сообщения в формате OpenAI (совместим с Groq)
+    const groqMessages = [];
+
+    // System prompt
+    if (systemPrompt) {
+      groqMessages.push({ role: 'system', content: systemPrompt });
+    }
+
+    // Добавляем сообщения пользователя
+    for (const msg of messages || []) {
+      groqMessages.push({ role: msg.role, content: msg.content });
+    }
+
+    console.log('📡 Calling Groq API...');
+    console.log('Messages:', JSON.stringify(groqMessages, null, 2).substring(0, 500));
+
     let response: Response;
     try {
-      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+      response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify({
+          model: 'llama-3.1-70b-versatile',
+          messages: groqMessages,
+          max_tokens: 500,
+          temperature: 0.7,
+          top_p: 1,
+          stream: false,
+        }),
         signal: AbortSignal.timeout(30000),
       });
     } catch (fetchError: any) {
-      console.error('❌ Gemini API fetch failed:', fetchError.message);
+      console.error('❌ Groq API fetch failed:', fetchError.message);
       return res.status(500).json({
-        error: 'Cannot connect to Gemini API',
+        error: 'Cannot connect to Groq API',
         details: fetchError.message
       });
     }
 
-    console.log('Gemini response status:', response.status);
+    console.log('Groq response status:', response.status);
 
     const responseText = await response.text();
-    console.log('Gemini raw response:', responseText.substring(0, 500));
+    console.log('Groq raw response:', responseText.substring(0, 500));
 
     if (!response.ok) {
-      console.error('❌ Gemini API error:', responseText);
-      let errorMessage = `Gemini error: ${response.status}`;
-      
+      console.error('❌ Groq API error:', responseText);
+      let errorMessage = `Groq error: ${response.status}`;
+
       try {
         const errorData = JSON.parse(responseText);
         errorMessage = errorData.error?.message || errorMessage;
       } catch {
         errorMessage = responseText || errorMessage;
       }
-      
+
       return res.status(500).json({ error: errorMessage });
     }
 
@@ -134,27 +110,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
       data = JSON.parse(responseText);
     } catch (parseError) {
-      console.error('❌ Failed to parse Gemini response:', parseError);
-      return res.status(500).json({ 
-        error: 'Invalid response from Gemini API',
+      console.error('❌ Failed to parse Groq response:', parseError);
+      return res.status(500).json({
+        error: 'Invalid response from Groq API',
         rawResponse: responseText.substring(0, 200)
       });
     }
-    
-    console.log('✅ Gemini response success');
 
-    // Конвертируем ответ Gemini в формат OpenAI для совместимости
+    console.log('✅ Groq response success');
+
+    // Возвращаем в формате совместимом с aiService.ts
     const openaiFormat = {
-      id: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+      id: data.id || '',
       choices: [{
         message: {
-          content: data.candidates?.[0]?.content?.parts?.[0]?.text || 'Извините, я не могу ответить сейчас.'
+          content: data.choices?.[0]?.message?.content || 'Извините, я не могу ответить сейчас.'
         }
       }],
-      usage: data.usageMetadata ? {
-        prompt_tokens: data.usageMetadata.promptTokenCount || 0,
-        completion_tokens: data.usageMetadata.candidatesTokenCount || 0,
-        total_tokens: data.usageMetadata.totalTokenCount || 0,
+      usage: data.usage ? {
+        prompt_tokens: data.usage.prompt_tokens || 0,
+        completion_tokens: data.usage.completion_tokens || 0,
+        total_tokens: data.usage.total_tokens || 0,
       } : undefined,
     };
 

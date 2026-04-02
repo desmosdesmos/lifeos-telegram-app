@@ -21,12 +21,10 @@ export function Profile() {
     gender: state.profile.gender || 'male',
   });
 
-  // Инициализируем аватарку из Telegram или из профиля
   const [avatarUrl, setAvatarUrl] = useState<string | null>(() => {
     return state.profile.avatarUrl || telegramAvatar || null;
   });
 
-  // Сохраняем аватарку из Telegram при первой загрузке
   useEffect(() => {
     if (telegramAvatar && !state.profile.avatarUrl) {
       setAvatarUrl(telegramAvatar);
@@ -34,7 +32,6 @@ export function Profile() {
     }
   }, [telegramAvatar]);
 
-  // Скрываем нижний бар при редактировании
   useEffect(() => {
     if (isEditing) {
       hide();
@@ -98,27 +95,58 @@ export function Profile() {
   const bmiStatus = getBmiStatus(bmi);
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto relative">
+      {/* Animated background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="gradient-orb gradient-orb-1" style={{ top: '10%', left: '-10%', width: '250px', height: '250px' }} />
+        <div className="gradient-orb gradient-orb-2" style={{ bottom: '20%', right: '-5%', width: '200px', height: '200px' }} />
+      </div>
+
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ duration: 0.6 }}
+        className="relative z-10 mb-8 flex items-center justify-between"
+      >
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
+          <motion.button 
+            onClick={() => navigate('/')} 
+            className="w-11 h-11 rounded-[16px] glass-card flex items-center justify-center active:scale-95 transition-transform"
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
             <ChevronLeft className="w-5 h-5" />
-          </button>
-          <h1 className="text-3xl">Профиль</h1>
+          </motion.button>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">Профиль</h1>
         </div>
 
         <div className="flex items-center gap-2">
           {!isEditing ? (
-            <motion.button whileTap={{ scale: 0.95 }} onClick={() => setIsEditing(true)} className="w-11 h-11 rounded-[14px] glass-card text-[#4DA3FF] flex items-center justify-center">
+            <motion.button 
+              whileTap={{ scale: 0.95 }} 
+              whileHover={{ scale: 1.05 }}
+              onClick={() => setIsEditing(true)} 
+              className="w-11 h-11 rounded-[16px] glass-card text-[#4DA3FF] flex items-center justify-center"
+            >
               <Edit2 className="w-5 h-5" />
             </motion.button>
           ) : (
             <>
-              <motion.button whileTap={{ scale: 0.95 }} onClick={handleCancel} className="w-11 h-11 rounded-[14px] glass-card text-white/70 flex items-center justify-center">
+              <motion.button 
+                whileTap={{ scale: 0.95 }} 
+                whileHover={{ scale: 1.05 }}
+                onClick={handleCancel} 
+                className="w-11 h-11 rounded-[16px] glass-card text-white/70 flex items-center justify-center"
+              >
                 <X className="w-5 h-5" />
               </motion.button>
-              <motion.button whileTap={{ scale: 0.95 }} onClick={handleSave} className="w-11 h-11 rounded-[14px] bg-[#22C55E] text-white flex items-center justify-center">
+              <motion.button 
+                whileTap={{ scale: 0.95 }} 
+                whileHover={{ scale: 1.05 }}
+                onClick={handleSave} 
+                className="w-11 h-11 rounded-[16px] bg-gradient-to-br from-[#22C55E] to-[#22C55E]/80 text-white flex items-center justify-center shadow-lg glow-green"
+              >
                 <Save className="w-5 h-5" />
               </motion.button>
             </>
@@ -128,39 +156,58 @@ export function Profile() {
 
       {/* Avatar Card */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.1 }}
-        className="glass-card rounded-[24px] p-6 mb-6 bg-gradient-to-br from-[#4DA3FF]/10 to-[#22C55E]/5 border border-white/10"
+        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ delay: 0.1, duration: 0.5 }}
+        className="relative z-10 glass-card rounded-[28px] p-6 mb-6 bg-gradient-to-br from-[#4DA3FF]/15 to-[#22C55E]/5 border border-white/10 overflow-hidden"
       >
-        <div className="flex items-center gap-4">
-          {/* Avatar */}
-          <div className="relative">
+        {/* Animated gradient */}
+        <motion.div 
+          className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-[#4DA3FF]/20 to-transparent rounded-full blur-[60px]"
+          animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.5, 0.3] }}
+          transition={{ duration: 6, repeat: Infinity }}
+        />
+        
+        <div className="relative z-10 flex items-center gap-4">
+          <motion.div 
+            className="relative"
+            whileHover={{ scale: 1.05 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+          >
             {avatarUrl ? (
-              <img src={avatarUrl} alt="Avatar" className="w-20 h-20 rounded-[20px] object-cover border-2 border-[#4DA3FF]/30" />
+              <img src={avatarUrl} alt="Avatar" className="w-20 h-20 rounded-[20px] object-cover border-2 border-[#4DA3FF]/30 shadow-lg" />
             ) : (
-              <div className="w-20 h-20 rounded-[20px] bg-gradient-to-br from-[#4DA3FF] to-[#22C55E] flex items-center justify-center text-3xl font-bold text-white shadow-lg shadow-[#4DA3FF]/30">
+              <div className="w-20 h-20 rounded-[20px] bg-gradient-to-br from-[#4DA3FF] to-[#22C55E] flex items-center justify-center text-3xl font-bold text-white shadow-lg glow-blue">
                 {getInitials()}
               </div>
             )}
             {isEditing && (
-              <label className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-[#4DA3FF] flex items-center justify-center cursor-pointer border-2 border-[#0B0B0F]">
+              <motion.label 
+                className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full bg-gradient-to-br from-[#4DA3FF] to-[#4DA3FF]/80 flex items-center justify-center cursor-pointer border-2 border-[#0B0B0F] shadow-lg"
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.95 }}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring' }}
+              >
                 <Camera className="w-4 h-4 text-white" />
                 <input type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
-              </label>
+              </motion.label>
             )}
-          </div>
+          </motion.div>
 
           <div className="flex-1">
-            <h2 className="text-2xl font-bold mb-1">{editedData.name || 'Заполните имя'}</h2>
+            <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-white to-white/70 bg-clip-text text-transparent">{editedData.name || 'Заполните имя'}</h2>
             <p className="text-white/50 text-sm">LifeOS с {new Date().toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</p>
             {isEditing && (
-              <input
+              <motion.input
                 type="text"
                 value={editedData.name || ''}
                 onChange={(e) => setEditedData({ ...editedData, name: e.target.value })}
                 placeholder="Ваше имя"
-                className="mt-2 w-full glass-card rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]"
+                className="mt-2 w-full glass-card rounded-[16px] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]/50 transition-all"
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
               />
             )}
           </div>
@@ -172,30 +219,34 @@ export function Profile() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
-        className="grid grid-cols-3 gap-3 mb-6"
+        className="relative z-10 grid grid-cols-3 gap-3 mb-6"
       >
-        <div className="glass-card rounded-[16px] p-3 text-center">
-          <p className="text-white/40 text-xs mb-1">Возраст</p>
-          <p className="text-xl font-bold">{editedData.age || '-'}</p>
+        <div className="glass-card rounded-[20px] p-4 text-center backdrop-blur-xl">
+          <p className="text-white/40 text-xs mb-2">Возраст</p>
+          <p className="text-2xl font-bold">{editedData.age || '-'}</p>
         </div>
-        <div className="glass-card rounded-[16px] p-3 text-center border-l border-white/10">
-          <p className="text-white/40 text-xs mb-1">Вес</p>
-          <p className="text-xl font-bold">{editedData.weight || '-'}<span className="text-xs text-white/40 ml-0.5">кг</span></p>
+        <div className="glass-card rounded-[20px] p-4 text-center border-l border-white/10 backdrop-blur-xl">
+          <p className="text-white/40 text-xs mb-2">Вес</p>
+          <p className="text-2xl font-bold">{editedData.weight || '-'}<span className="text-xs text-white/40 ml-1">кг</span></p>
         </div>
-        <div className="glass-card rounded-[16px] p-3 text-center border-l border-white/10">
-          <p className="text-white/40 text-xs mb-1">Рост</p>
-          <p className="text-xl font-bold">{editedData.height || '-'}<span className="text-xs text-white/40 ml-0.5">см</span></p>
+        <div className="glass-card rounded-[20px] p-4 text-center border-l border-white/10 backdrop-blur-xl">
+          <p className="text-white/40 text-xs mb-2">Рост</p>
+          <p className="text-2xl font-bold">{editedData.height || '-'}<span className="text-xs text-white/40 ml-1">см</span></p>
         </div>
       </motion.div>
 
       {/* Profile Fields */}
-      <div className="space-y-3 mb-6">
+      <div className="relative z-10 space-y-3 mb-6">
         <div className="flex items-center justify-between px-1">
-          <p className="text-white/60 text-sm">Основная информация</p>
+          <p className="text-white/60 text-sm font-medium">Основная информация</p>
           {!isEditing && (
-            <button onClick={() => setIsEditing(true)} className="text-[#4DA3FF] text-xs flex items-center gap-1">
-              <Edit2 className="w-3 h-3" /> Изменить
-            </button>
+            <motion.button 
+              onClick={() => setIsEditing(true)} 
+              className="text-[#4DA3FF] text-xs flex items-center gap-1 hover:text-[#4DA3FF]/80 transition-colors"
+              whileTap={{ scale: 0.95 }}
+            >
+              <Edit2 className="w-3.5 h-3.5" /> Изменить
+            </motion.button>
           )}
         </div>
 
@@ -209,23 +260,49 @@ export function Profile() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2 + index * 0.05 }}
-              className="glass-card rounded-[20px] p-5 flex items-center gap-4"
+              className="glass-card rounded-[24px] p-5 flex items-center gap-4 relative overflow-hidden group"
+              whileHover={{ y: -2 }}
             >
-              <div className="w-12 h-12 rounded-[14px] flex items-center justify-center flex-shrink-0" style={{ backgroundColor: `${item.color}20` }}>
-                <Icon className="w-6 h-6" style={{ color: item.color }} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white/60 text-xs mb-1">{item.label}</p>
+              {/* Hover gradient */}
+              <div 
+                className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                style={{ background: `radial-gradient(circle at top right, ${item.color}20, transparent 70%)` }}
+              />
+              
+              <motion.div 
+                className="w-13 h-13 rounded-[18px] flex items-center justify-center flex-shrink-0 backdrop-blur-xl relative z-10" 
+                style={{ backgroundColor: `${item.color}20` }}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                transition={{ type: 'spring', stiffness: 400 }}
+              >
+                <Icon className="w-6 h-6" style={{ color: item.color }} strokeWidth={2.5} />
+              </motion.div>
+              <div className="flex-1 min-w-0 relative z-10">
+                <p className="text-white/60 text-xs mb-1.5 font-medium">{item.label}</p>
                 {isEditing && isSelect ? (
-                  <select value={editedData[item.key as keyof typeof editedData]} onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} className="w-full bg-white/5 rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]">
+                  <select 
+                    value={editedData[item.key as keyof typeof editedData]} 
+                    onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} 
+                    className="w-full bg-white/5 rounded-[16px] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]/50 transition-all"
+                  >
                     {item.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                   </select>
                 ) : isEditing && isNumber ? (
-                  <input type={item.type} value={editedData[item.key as keyof typeof editedData] || ''} onChange={(e) => setEditedData({ ...editedData, [item.key]: item.type === 'number' ? Number(e.target.value) : e.target.value })} className="w-full bg-white/5 rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+                  <input 
+                    type={item.type} 
+                    value={editedData[item.key as keyof typeof editedData] || ''} 
+                    onChange={(e) => setEditedData({ ...editedData, [item.key]: item.type === 'number' ? Number(e.target.value) : e.target.value })} 
+                    className="w-full bg-white/5 rounded-[16px] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]/50 transition-all" 
+                  />
                 ) : isEditing ? (
-                  <input type="text" value={editedData[item.key as keyof typeof editedData]} onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} className="w-full bg-white/5 rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+                  <input 
+                    type="text" 
+                    value={editedData[item.key as keyof typeof editedData]} 
+                    onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} 
+                    className="w-full bg-white/5 rounded-[16px] px-4 py-2.5 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]/50 transition-all" 
+                  />
                 ) : (
-                  <p className="text-lg truncate">{item.value || '-'}{item.suffix}</p>
+                  <p className="text-lg truncate font-medium">{item.value || '-'}{item.suffix}</p>
                 )}
               </div>
             </motion.div>
@@ -234,19 +311,46 @@ export function Profile() {
       </div>
 
       {/* Stats Card */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="glass-card rounded-[24px] p-6 mb-6 bg-gradient-to-br from-[#4DA3FF]/5 to-[#22C55E]/5">
-        <h3 className="text-lg font-bold mb-4">Расчётные показатели</h3>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="text-center p-4 rounded-[16px] bg-white/5">
+      <motion.div 
+        initial={{ opacity: 0, y: 20 }} 
+        animate={{ opacity: 1, y: 0 }} 
+        transition={{ delay: 0.5 }} 
+        className="relative z-10 glass-card rounded-[28px] p-6 mb-6 bg-gradient-to-br from-[#4DA3FF]/10 to-[#22C55E]/5 overflow-hidden"
+      >
+        {/* Animated orb */}
+        <motion.div 
+          className="absolute -top-16 -right-16 w-32 h-32 bg-gradient-to-br from-[#4DA3FF]/20 to-transparent rounded-full blur-[60px]"
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+        
+        <h3 className="text-lg font-bold mb-4 relative z-10">Расчётные показатели</h3>
+        <div className="grid grid-cols-2 gap-4 relative z-10">
+          <motion.div 
+            className="text-center p-4 rounded-[20px] bg-white/5 backdrop-blur-sm"
+            whileHover={{ scale: 1.03 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+          >
             <p className="text-white/50 text-xs mb-2">ИМТ</p>
             <p className="text-3xl font-bold">{bmi || '-'}</p>
-            <p className="text-xs mt-2" style={{ color: bmiStatus.color }}>{bmiStatus.text}</p>
-          </div>
-          <div className="text-center p-4 rounded-[16px] bg-white/5">
+            <motion.p 
+              className="text-xs mt-2 font-semibold" 
+              style={{ color: bmiStatus.color }}
+              animate={{ scale: [1, 1.05, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              {bmiStatus.text}
+            </motion.p>
+          </motion.div>
+          <motion.div 
+            className="text-center p-4 rounded-[20px] bg-white/5 backdrop-blur-sm"
+            whileHover={{ scale: 1.03 }}
+            transition={{ type: 'spring', stiffness: 400 }}
+          >
             <p className="text-white/50 text-xs mb-2">Калории</p>
             <p className="text-3xl font-bold">{baseCalories || '-'}</p>
             <p className="text-white/40 text-xs mt-2">ккал/день</p>
-          </div>
+          </motion.div>
         </div>
         <p className="text-white/40 text-xs mt-4 text-center">Расчёт основан на ваших параметрах и цели</p>
       </motion.div>
@@ -257,13 +361,15 @@ export function Profile() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.6 }}
         onClick={resetAllData}
-        className="w-full glass-card rounded-[20px] p-5 flex items-center justify-center gap-3 active:scale-98 transition-transform border border-red-500/20"
+        className="relative z-10 w-full glass-card rounded-[24px] p-5 flex items-center justify-center gap-3 active:scale-98 transition-transform border border-red-500/20 hover:bg-red-500/10"
+        whileHover={{ scale: 1.02 }}
+        whileTap={{ scale: 0.98 }}
       >
         <RotateCcw className="w-5 h-5 text-[#EF4444]" />
         <span className="text-[#EF4444] font-medium">Сбросить все данные</span>
       </motion.button>
 
-      <p className="text-center text-white/30 text-xs mt-6 mb-4">LifeOS v1.0.0</p>
+      <p className="relative z-10 text-center text-white/30 text-xs mt-6 mb-4">LifeOS v1.0.0</p>
     </div>
   );
 }

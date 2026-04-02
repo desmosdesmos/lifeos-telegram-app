@@ -1,5 +1,6 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
 import { Home, LineChart, Plus, Sparkles, User } from 'lucide-react';
+import { motion } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
 
 export function Layout() {
@@ -17,49 +18,79 @@ export function Layout() {
 
   return (
     <div className="relative w-full min-h-screen bg-[#0B0B0F] overflow-x-hidden">
-      <div className="pb-24">
+      {/* Animated background orbs */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="gradient-orb gradient-orb-1" style={{ top: '10%', left: '-10%', width: '300px', height: '300px' }} />
+        <div className="gradient-orb gradient-orb-2" style={{ bottom: '20%', right: '-5%', width: '250px', height: '250px' }} />
+        <div className="gradient-orb gradient-orb-3" style={{ top: '50%', left: '50%', width: '200px', height: '200px', transform: 'translate(-50%, -50%)' }} />
+      </div>
+
+      <div className="relative pb-24">
         <Outlet />
       </div>
 
-      {/* Bottom Navigation с анимациями */}
-      <nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none transition-all duration-300 ${isHidden ? 'translate-y-[200%]' : 'translate-y-0'}`}>
-        <div
-          className="rounded-[24px] px-4 py-3 flex items-center justify-around pointer-events-auto"
-          style={{
-            background: 'rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(40px)',
-            WebkitBackdropFilter: 'blur(40px)',
-            border: '1px solid rgba(255, 255, 255, 0.15)',
-            boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)'
-          }}
+      {/* Bottom Navigation с усиленным blur и анимациями */}
+      <nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none transition-all duration-500 ${isHidden ? 'translate-y-[200%] opacity-0' : 'translate-y-0 opacity-100'}`}>
+        <motion.div
+          className="glass-card-ultra rounded-[28px] px-3 py-3 flex items-center justify-around"
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         >
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
 
             return (
-              <button
+              <motion.button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="flex flex-col items-center gap-1 transition-all duration-300"
+                className="relative flex flex-col items-center gap-1 p-2 rounded-2xl transition-all duration-300"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
               >
-                <Icon 
-                  className={`w-6 h-6 transition-all duration-300 ${
-                    isActive 
-                      ? 'text-[#4DA3FF] scale-110 -translate-y-1' 
-                      : 'text-white/60 hover:text-white/80'
-                  }`} 
-                  strokeWidth={isActive ? 2.5 : 2} 
-                />
-                <span className={`text-[10px] transition-all duration-300 ${
-                  isActive ? 'text-[#4DA3FF] font-bold' : 'text-white/60'
-                }`}>
+                {/* Active indicator background */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeNavIndicator"
+                    className="absolute inset-0 bg-gradient-to-b from-[#4DA3FF]/20 to-transparent rounded-2xl"
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
+                
+                {/* Icon with glow effect */}
+                <div className="relative z-10">
+                  <Icon
+                    className={`w-6 h-6 transition-all duration-300 ${
+                      isActive
+                        ? 'text-[#4DA3FF] drop-shadow-[0_0_8px_rgba(77,163,255,0.6)]'
+                        : 'text-white/50 hover:text-white/70'
+                    }`}
+                    strokeWidth={isActive ? 2.5 : 2}
+                  />
+                  {/* Glow orb for active state */}
+                  {isActive && (
+                    <div className="absolute inset-0 bg-[#4DA3FF] blur-xl opacity-40 scale-150" />
+                  )}
+                </div>
+                
+                {/* Label */}
+                <motion.span 
+                  className={`relative z-10 text-[10px] transition-all duration-300 ${
+                    isActive ? 'text-[#4DA3FF] font-semibold' : 'text-white/40'
+                  }`}
+                  animate={{
+                    y: isActive ? -2 : 0,
+                    opacity: isActive ? 1 : 0.7
+                  }}
+                >
                   {item.label}
-                </span>
-              </button>
+                </motion.span>
+              </motion.button>
             );
           })}
-        </div>
+        </motion.div>
       </nav>
     </div>
   );

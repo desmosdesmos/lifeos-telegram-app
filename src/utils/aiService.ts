@@ -1,5 +1,6 @@
-// Qwen AI Service
-// API: https://www.aliyun.com/product/dashscope
+// Groq AI Service
+// API: https://console.groq.com
+// Модель: llama-3.1-70b-versatile
 // Использует Vercel API route /api/chat
 
 const AI_PROXY = '/api/chat';
@@ -81,7 +82,7 @@ export async function sendMessage(
   const prompt = buildPrompt(message, context);
 
   try {
-    console.log('Sending to Gemini:', prompt.substring(0, 100));
+    console.log('Sending to Groq:', prompt.substring(0, 100));
 
     const response = await fetch(AI_PROXY, {
       method: 'POST',
@@ -128,7 +129,7 @@ export async function sendMessage(
   }
 }
 
-// Анализ фото через Gemini Vision API
+// Анализ фото через Gemini API (Groq не поддерживает изображения)
 export async function analyzeFoodImage(
   imageBase64: string,
   prompt: string = 'Проанализируй это блюдо. Оцени:\n1. Что это за еда\n2. Примерные КБЖУ на порцию\n3. Качество еды\n4. Рекомендации\n\nОтветь кратко.'
@@ -151,6 +152,11 @@ export async function analyzeFoodImage(
 
     const responseText = await response.text();
     console.log('Proxy raw response:', responseText.substring(0, 500));
+
+    // Groq не поддерживает изображения — вернем ошибку с подсказкой
+    if (response.status === 400) {
+      throw new Error('Groq не поддерживает анализ изображений. Переключитесь на Gemini для этой функции.');
+    }
 
     if (!response.ok) {
       let errorMessage = `Анализ фото не удался: ${response.status}`;

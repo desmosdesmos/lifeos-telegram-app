@@ -1,5 +1,6 @@
 import { useLocation, useNavigate } from 'react-router';
 import type { LucideIcon } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Home, LineChart, Plus, Sparkles, User } from 'lucide-react';
 
 interface NavItem {
@@ -27,35 +28,72 @@ export function BottomNavigation({ items }: BottomNavigationProps) {
   const navItems = items || defaultItems;
 
   return (
-    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[390px]">
-      <div 
-        className="rounded-[24px] px-4 py-3 flex items-center justify-around"
-        style={{
-          background: 'rgba(255, 255, 255, 0.12)',
-          backdropFilter: 'blur(40px)',
-          WebkitBackdropFilter: 'blur(40px)',
-          border: '1px solid rgba(255, 255, 255, 0.15)',
-          boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.5)'
-        }}
+    <nav className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-[calc(100%-2rem)] max-w-[390px] pointer-events-none">
+      <motion.div
+        className="glass-card-ultra rounded-[28px] px-3 py-3 flex items-center justify-around pointer-events-auto"
+        initial={{ scale: 0.95, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
       >
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           const Icon = item.icon;
 
           return (
-            <button
+            <motion.button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-1 transition-all ${
-                isActive ? 'text-[#4DA3FF]' : 'text-white/60'
-              }`}
+              className="relative flex flex-col items-center gap-1 p-2 rounded-2xl transition-all duration-300"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              <Icon className="w-6 h-6" strokeWidth={isActive ? 2.5 : 2} />
-              <span className="text-[10px]">{item.label}</span>
-            </button>
+              {/* Active indicator background */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeNavIndicator"
+                  className="absolute inset-0 bg-gradient-to-b from-[#4DA3FF]/20 to-transparent rounded-2xl"
+                  initial={false}
+                  transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                />
+              )}
+              
+              {/* Icon with glow effect */}
+              <div className="relative z-10">
+                <Icon
+                  className={`w-6 h-6 transition-all duration-300 ${
+                    isActive
+                      ? 'text-[#4DA3FF] drop-shadow-[0_0_8px_rgba(77,163,255,0.6)]'
+                      : 'text-white/50 hover:text-white/70'
+                  }`}
+                  strokeWidth={isActive ? 2.5 : 2}
+                />
+                {/* Glow orb for active state */}
+                {isActive && (
+                  <motion.div 
+                    className="absolute inset-0 bg-[#4DA3FF] blur-xl opacity-40 scale-150"
+                    initial={{ scale: 1, opacity: 0 }}
+                    animate={{ scale: 1.5, opacity: 0.4 }}
+                    transition={{ duration: 0.3 }}
+                  />
+                )}
+              </div>
+              
+              {/* Label */}
+              <motion.span 
+                className={`relative z-10 text-[10px] transition-all duration-300 ${
+                  isActive ? 'text-[#4DA3FF] font-semibold' : 'text-white/40'
+                }`}
+                animate={{
+                  y: isActive ? -2 : 0,
+                  opacity: isActive ? 1 : 0.7
+                }}
+              >
+                {item.label}
+              </motion.span>
+            </motion.button>
           );
         })}
-      </div>
+      </motion.div>
     </nav>
   );
 }

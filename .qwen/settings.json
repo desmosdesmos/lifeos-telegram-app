@@ -16,7 +16,9 @@
       "Bash(true)",
       "Bash(git add *)",
       "Bash(git commit *)",
-      "Bash(git push)"
+      "Bash(git push)",
+      "Bash(netstat *)",
+      "Bash(findstr *)"
     ]
   },
   "$version": 3

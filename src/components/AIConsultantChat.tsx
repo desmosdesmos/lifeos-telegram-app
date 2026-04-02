@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Send, X, Camera } from 'lucide-react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
 import { sendMessage, getQuickTip, analyzeImageWithContext, fileToBase64 } from '../utils/aiService';
 
@@ -22,6 +22,7 @@ const consultants = {
     specialty: 'Питание и макронутриенты',
     avatar: '🥗',
     color: '#22C55E',
+    gradient: 'from-[#22C55E]/20 to-[#22C55E]/5',
   },
   sleep: {
     name: 'Доктор Сон',
@@ -29,6 +30,7 @@ const consultants = {
     specialty: 'Качество сна и восстановление',
     avatar: '🌙',
     color: '#4DA3FF',
+    gradient: 'from-[#4DA3FF]/20 to-[#4DA3FF]/5',
   },
   fitness: {
     name: 'Алекс',
@@ -36,6 +38,7 @@ const consultants = {
     specialty: 'Тренировки и прогресс',
     avatar: '💪',
     color: '#F59E0B',
+    gradient: 'from-[#F59E0B]/20 to-[#F59E0B]/5',
   },
   finance: {
     name: 'Виктор',
@@ -43,6 +46,7 @@ const consultants = {
     specialty: 'Бюджет и инвестиции',
     avatar: '💰',
     color: '#22C55E',
+    gradient: 'from-[#22C55E]/20 to-[#22C55E]/5',
   },
   goals: {
     name: 'Коуч Макс',
@@ -50,6 +54,7 @@ const consultants = {
     specialty: 'Достижение целей',
     avatar: '🎯',
     color: '#4DA3FF',
+    gradient: 'from-[#4DA3FF]/20 to-[#4DA3FF]/5',
   },
 };
 
@@ -119,11 +124,10 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Проверка размера (макс 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setMessages(prev => [...prev, { 
-        type: 'ai', 
-        text: '❌ Файл слишком большой. Максимальный размер: 5MB' 
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: '❌ Файл слишком большой. Максимальный размер: 5MB'
       }]);
       return;
     }
@@ -131,25 +135,21 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
     try {
       setIsAnalyzingImage(true);
 
-      // Добавляем сообщение о загрузке
-      setMessages(prev => [...prev, { 
-        type: 'user', 
-        text: `📸 Загружено фото для анализа (${(file.size / 1024).toFixed(1)} KB)` 
+      setMessages(prev => [...prev, {
+        type: 'user',
+        text: `📸 Загружено фото для анализа (${(file.size / 1024).toFixed(1)} KB)`
       }]);
 
-      // Конвертация в base64
       const base64 = await fileToBase64(file);
-
-      // Анализ в зависимости от типа консультанта
       const context = type === 'sleep' || type === 'goals' ? 'other' : type;
       const response = await analyzeImageWithContext(base64, context);
 
       setMessages(prev => [...prev, { type: 'ai', text: response.text }]);
     } catch (error) {
       console.error('Photo analysis error:', error);
-      setMessages(prev => [...prev, { 
-        type: 'ai', 
-        text: `❌ Ошибка анализа фото: ${error instanceof Error ? error.message : 'Попробуйте снова'}` 
+      setMessages(prev => [...prev, {
+        type: 'ai',
+        text: `❌ Ошибка анализа фото: ${error instanceof Error ? error.message : 'Попробуйте снова'}`
       }]);
     } finally {
       setIsAnalyzingImage(false);
@@ -177,137 +177,246 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   };
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 backdrop-blur-sm">
-      <div className="glass-card rounded-t-[32px] w-full max-w-md h-[85vh] flex flex-col pb-24">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div 
-              className="w-12 h-12 rounded-[16px] flex items-center justify-center text-2xl" 
-              style={{ backgroundColor: `${consultant.color}20` }}
-            >
-              {consultant.avatar}
-            </div>
-            <div>
-              <h3 className="text-lg font-bold">{consultant.name}</h3>
-              <p className="text-xs text-white/50">{consultant.title}</p>
-            </div>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+    <AnimatePresence>
+      <motion.div 
+        className="fixed inset-0 z-[110] flex items-end justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {/* Backdrop with strong blur */}
+        <motion.div 
+          className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        />
+        
+        {/* Chat Panel */}
+        <motion.div 
+          className="glass-card-ultra rounded-t-[36px] w-full max-w-md h-[85vh] flex flex-col pb-24 relative overflow-hidden"
+          initial={{ y: '100%' }}
+          animate={{ y: 0 }}
+          exit={{ y: '100%' }}
+          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        >
+          {/* Animated gradient background */}
+          <div className={`absolute inset-0 bg-gradient-to-b ${consultant.gradient} pointer-events-none`} />
+          
+          {/* Floating orbs */}
+          <motion.div 
+            className="absolute -top-20 -right-20 w-56 h-56 rounded-full blur-[80px] opacity-30 pointer-events-none"
+            style={{ backgroundColor: consultant.color }}
+            animate={{ 
+              scale: [1, 1.2, 1],
+              x: [0, -20, 0],
+              y: [0, 10, 0]
+            }}
+            transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div 
+            className="absolute -bottom-20 -left-20 w-48 h-48 rounded-full blur-[80px] opacity-20 pointer-events-none"
+            style={{ backgroundColor: consultant.color }}
+            animate={{ 
+              scale: [1.2, 1, 1.2],
+              x: [0, 20, 0],
+              y: [0, -10, 0]
+            }}
+            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          />
 
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-4">
-          {messages.map((message, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              <div
-                className={`max-w-[85%] rounded-[20px] px-5 py-3 ${
-                  message.type === 'user'
-                    ? 'bg-[#4DA3FF] text-white'
-                    : 'bg-white/10'
-                }`}
+          {/* Header */}
+          <motion.div 
+            className="relative z-10 flex items-center justify-between p-6 border-b border-white/10"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+          >
+            <div className="flex items-center gap-3">
+              <motion.div
+                className="w-14 h-14 rounded-[20px] flex items-center justify-center text-2xl relative overflow-hidden"
+                style={{ 
+                  background: `linear-gradient(135deg, ${consultant.color}30, ${consultant.color}10)`,
+                  boxShadow: `0 8px 24px ${consultant.color}40`
+                }}
+                whileHover={{ scale: 1.05, rotate: 5 }}
+                transition={{ type: 'spring', stiffness: 400 }}
               >
-                <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
+                {consultant.avatar}
+              </motion.div>
+              <div>
+                <h3 className="text-lg font-bold text-white">{consultant.name}</h3>
+                <p className="text-xs text-white/50">{consultant.title}</p>
               </div>
-            </motion.div>
-          ))}
-          {isTyping && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex justify-start"
+            </div>
+            <motion.button
+              onClick={onClose}
+              className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition-all duration-300 backdrop-blur-sm"
+              whileHover={{ scale: 1.1, rotate: 90 }}
+              whileTap={{ scale: 0.9 }}
             >
-              <div className="bg-white/10 rounded-[20px] px-5 py-3">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <div className="w-2 h-2 bg-white/40 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <X className="w-5 h-5" />
+            </motion.button>
+          </motion.div>
+
+          {/* Messages */}
+          <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-4">
+            <AnimatePresence initial={false}>
+              {messages.map((message, index) => (
+                <motion.div
+                  key={index}
+                  initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                  className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <motion.div
+                    className={`max-w-[85%] rounded-[24px] px-5 py-3.5 backdrop-blur-xl ${
+                      message.type === 'user'
+                        ? 'bg-gradient-to-br from-[#4DA3FF] to-[#4DA3FF]/80 text-white shadow-lg'
+                        : 'bg-white/10 border border-white/10'
+                    }`}
+                    whileHover={{ scale: 1.02 }}
+                    transition={{ type: 'spring', stiffness: 400 }}
+                  >
+                    <p className="text-sm leading-relaxed whitespace-pre-line">{message.text}</p>
+                  </motion.div>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+            
+            {isTyping && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="flex justify-start"
+              >
+                <div className="bg-white/10 rounded-[24px] px-5 py-4 backdrop-blur-xl border border-white/10">
+                  <div className="flex items-center gap-1.5">
+                    <motion.div 
+                      className="w-2.5 h-2.5 bg-white/50 rounded-full"
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0 }}
+                    />
+                    <motion.div 
+                      className="w-2.5 h-2.5 bg-white/50 rounded-full"
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.15 }}
+                    />
+                    <motion.div 
+                      className="w-2.5 h-2.5 bg-white/50 rounded-full"
+                      animate={{ y: [0, -6, 0] }}
+                      transition={{ duration: 0.6, repeat: Infinity, delay: 0.3 }}
+                    />
+                  </div>
                 </div>
+              </motion.div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          {/* Quick Questions */}
+          {messages.length === 1 && (
+            <motion.div 
+              className="relative z-10 px-6 pb-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <p className="text-white/50 text-xs mb-3 font-medium">Быстрые вопросы:</p>
+              <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                {questions.map((q, i) => (
+                  <motion.button
+                    key={i}
+                    onClick={() => handleSend(q)}
+                    className="px-4 py-2.5 rounded-[16px] bg-white/5 text-xs whitespace-nowrap transition-all duration-300 border border-white/10 hover:bg-white/10 backdrop-blur-sm"
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                  >
+                    {q}
+                  </motion.button>
+                ))}
               </div>
             </motion.div>
           )}
-          <div ref={messagesEndRef} />
-        </div>
 
-        {/* Quick Questions */}
-        {messages.length === 1 && (
-          <div className="px-6 pb-4">
-            <p className="text-white/50 text-xs mb-3">Быстрые вопросы:</p>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {questions.map((q, i) => (
-                <button
-                  key={i}
-                  onClick={() => handleSend(q)}
-                  className="px-4 py-2 rounded-[12px] bg-white/5 text-xs whitespace-nowrap hover:bg-white/10 transition-colors border border-white/10"
-                >
-                  {q}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Photo Upload Button - доступен для всех типов консультантов */}
-        <div className="px-6 pb-2">
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isAnalyzingImage}
-            className="w-full py-3 bg-[#4DA3FF]/20 border border-[#4DA3FF]/30 rounded-[16px] text-[#4DA3FF] text-sm font-medium flex items-center justify-center gap-2 hover:bg-[#4DA3FF]/30 transition-colors disabled:opacity-50"
+          {/* Photo Upload Button */}
+          <motion.div
+            className="relative z-10 px-6 pb-2"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
           >
-            {isAnalyzingImage ? (
-              <>
-                <div className="w-4 h-4 border-2 border-[#4DA3FF] border-t-transparent rounded-full animate-spin" />
-                <span>Анализирую фото...</span>
-              </>
-            ) : (
-              <>
-                <Camera className="w-4 h-4" />
-                <span>📸 Сделать фото для AI анализа</span>
-              </>
-            )}
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handlePhotoUpload}
-            className="hidden"
-          />
-        </div>
-
-        {/* Input */}
-        <div className="p-4 border-t border-white/10">
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
-              placeholder="Задайте вопрос..."
-              className="flex-1 bg-white/5 rounded-[16px] px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF] placeholder:text-white/40"
-            />
-            <button
-              onClick={() => handleSend(input)}
-              disabled={!input.trim() || isTyping}
-              className="w-12 h-12 rounded-[16px] bg-[#4DA3FF] flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#4DA3FF]/90 transition-colors"
+            <motion.button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isAnalyzingImage}
+              className="w-full py-3.5 bg-[#4DA3FF]/20 border border-[#4DA3FF]/40 rounded-[20px] text-[#4DA3FF] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#4DA3FF]/30 transition-all duration-300 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Send className="w-5 h-5" />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+              {isAnalyzingImage ? (
+                <>
+                  <motion.div 
+                    className="w-5 h-5 border-2 border-[#4DA3FF] border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <span>Анализирую фото...</span>
+                </>
+              ) : (
+                <>
+                  <Camera className="w-5 h-5" />
+                  <span>📸 Сделать фото для AI анализа</span>
+                </>
+              )}
+            </motion.button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handlePhotoUpload}
+              className="hidden"
+            />
+          </motion.div>
+
+          {/* Input */}
+          <motion.div 
+            className="relative z-10 p-4 border-t border-white/10"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+          >
+            <div className="flex items-center gap-2.5">
+              <motion.input
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSend(input)}
+                placeholder="Задайте вопрос..."
+                className="flex-1 bg-white/5 rounded-[20px] px-5 py-3.5 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]/50 placeholder:text-white/40 backdrop-blur-sm border border-white/10 transition-all duration-300"
+                whileFocus={{ scale: 1.01 }}
+              />
+              <motion.button
+                onClick={() => handleSend(input)}
+                disabled={!input.trim() || isTyping}
+                className="w-13 h-13 rounded-[20px] bg-gradient-to-br from-[#4DA3FF] to-[#4DA3FF]/80 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 shadow-lg hover:shadow-xl"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Send className="w-5 h-5" />
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }
