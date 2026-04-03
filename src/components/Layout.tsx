@@ -1,6 +1,6 @@
 import { Outlet, useLocation, useNavigate } from 'react-router';
+import { motion, AnimatePresence } from 'motion/react';
 import { Home, LineChart, Plus, Sparkles, User } from 'lucide-react';
-import { motion } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
 
 export function Layout() {
@@ -26,39 +26,42 @@ export function Layout() {
       </div>
 
       <div className="relative pb-24">
-        <Outlet />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.1 }}
+            style={{ minHeight: '100vh' }}
+          >
+            <Outlet />
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      {/* Bottom Navigation с усиленным blur и анимациями */}
-      <nav className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] w-[calc(100%-2rem)] max-w-[390px] pointer-events-none transition-all duration-500 ${isHidden ? 'translate-y-[200%] opacity-0' : 'translate-y-0 opacity-100'}`}>
-        <motion.div
-          className="glass-card-ultra rounded-[28px] px-3 py-3 flex items-center justify-around"
-          initial={{ scale: 0.95, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-        >
+      {/* Bottom Navigation */}
+      <nav
+        className={`fixed bottom-4 left-1/2 -translate-x-1/2 z-[9999] w-[calc(100%-2rem)] max-w-[390px] transition-all duration-300 ${
+          isHidden ? 'translate-y-[200%] opacity-0' : 'translate-y-0 opacity-100'
+        }`}
+      >
+        <div className="glass-card-ultra rounded-[28px] px-3 py-3 flex items-center justify-around">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             const Icon = item.icon;
 
             return (
-              <motion.button
+              <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className="relative flex flex-col items-center gap-1 p-2 rounded-2xl transition-all duration-300"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+                className="relative flex flex-col items-center gap-1 p-2 rounded-2xl"
               >
                 {/* Active indicator background */}
                 {isActive && (
-                  <motion.div
-                    layoutId="activeNavIndicator"
-                    className="absolute inset-0 bg-gradient-to-b from-[#4DA3FF]/20 to-transparent rounded-2xl"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
+                  <div className="absolute inset-0 bg-gradient-to-b from-[#4DA3FF]/20 to-transparent rounded-2xl" />
                 )}
-                
+
                 {/* Icon with glow effect */}
                 <div className="relative z-10">
                   <Icon
@@ -74,23 +77,19 @@ export function Layout() {
                     <div className="absolute inset-0 bg-[#4DA3FF] blur-xl opacity-40 scale-150" />
                   )}
                 </div>
-                
+
                 {/* Label */}
-                <motion.span 
+                <span
                   className={`relative z-10 text-[10px] transition-all duration-300 ${
                     isActive ? 'text-[#4DA3FF] font-semibold' : 'text-white/40'
                   }`}
-                  animate={{
-                    y: isActive ? -2 : 0,
-                    opacity: isActive ? 1 : 0.7
-                  }}
                 >
                   {item.label}
-                </motion.span>
-              </motion.button>
+                </span>
+              </button>
             );
           })}
-        </motion.div>
+        </div>
       </nav>
     </div>
   );

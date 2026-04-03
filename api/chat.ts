@@ -70,7 +70,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           'Authorization': `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile',
+          model: 'llama-3.3-70b-versatile',
           messages: groqMessages,
           max_tokens: 500,
           temperature: 0.7,

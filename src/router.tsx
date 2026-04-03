@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom';
 import { Layout } from './components/Layout';
+import { ScrollToTop } from './components/ScrollToTop';
 import { Dashboard } from './pages/Dashboard';
 import { Nutrition } from './pages/Nutrition';
 import { Sleep } from './pages/Sleep';
@@ -26,6 +27,9 @@ export const router = createBrowserRouter([
       </div>
     ),
     children: [
+      {
+        element: <ScrollToTop />,
+      },
       { index: true, Component: Dashboard },
       { path: 'nutrition', Component: Nutrition },
       { path: 'sleep', Component: Sleep },

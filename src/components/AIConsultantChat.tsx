@@ -178,29 +178,29 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
 
   return (
     <AnimatePresence>
-      <motion.div 
-        className="fixed inset-0 z-[110] flex items-end justify-center"
+      <motion.div
+        className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
+        transition={{ duration: 0.2 }}
       >
         {/* Backdrop with strong blur */}
-        <motion.div 
+        <motion.div
           className="absolute inset-0 bg-black/70 backdrop-blur-xl"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
         />
-        
+
         {/* Chat Panel */}
-        <motion.div 
-          className="glass-card-ultra rounded-t-[36px] w-full max-w-md h-[85vh] flex flex-col pb-24 relative overflow-hidden"
-          initial={{ y: '100%' }}
-          animate={{ y: 0 }}
-          exit={{ y: '100%' }}
-          transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+        <motion.div
+          className="glass-card-ultra rounded-[32px] w-full max-w-md h-[80vh] max-h-[600px] flex flex-col relative overflow-hidden"
+          initial={{ scale: 0.9, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.9, opacity: 0, y: 20 }}
+          transition={{ type: 'spring', damping: 25, stiffness: 400 }}
         >
           {/* Animated gradient background */}
           <div className={`absolute inset-0 bg-gradient-to-b ${consultant.gradient} pointer-events-none`} />
@@ -388,11 +388,11 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
           </motion.div>
 
           {/* Input */}
-          <motion.div 
+          <motion.div
             className="relative z-10 p-4 border-t border-white/10"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
+            transition={{ delay: 0.3 }}
           >
             <div className="flex items-center gap-2.5">
               <motion.input
