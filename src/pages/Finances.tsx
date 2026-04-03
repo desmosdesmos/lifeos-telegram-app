@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Calendar, Upload, FileText, MessageSquare, Camera } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Calendar, Upload, FileText, MessageSquare, Camera, Download } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
 import {
@@ -11,6 +12,12 @@ import {
   previewImport,
   type ImportedTransaction,
 } from '../utils/transactionImporter';
+import {
+  exportToPDF,
+  exportToImage,
+  downloadBlob,
+  type ExportTransaction,
+} from '../utils/exportTransactions';
 
 const categories = ['Еда', 'Транспорт', 'Спорт', 'Развлечения', 'Здоровье', 'Образование', 'Другое'];
 
@@ -19,8 +26,11 @@ export function Finances() {
   const { state, addTransaction, removeTransaction } = useApp();
   const [showAdd, setShowAdd] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showExport, setShowExport] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(getCurrentMonth());
+  const { isPremium, showPaywall } = useSubscription();
 
   // Get available months from transactions
   const availableMonths = getAvailableMonths(state.transactions);
@@ -39,6 +49,49 @@ export function Finances() {
     return { name: cat, amount, limit: 10000, color: getCategoryColor(cat) };
   }).filter(c => c.amount > 0);
 
+  const handleExport = async (format: 'pdf' | 'image') => {
+    if (!isPremium) {
+      showPaywall('export');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const exportTransactions: ExportTransaction[] = filteredTransactions.map(t => ({
+        id: t.id,
+        type: t.type,
+        amount: t.amount,
+        category: t.category,
+        description: t.description,
+        date: t.date,
+      }));
+
+      const options = {
+        transactions: exportTransactions,
+        month: getMonthDisplay(selectedMonth),
+        totalIncome: income,
+        totalExpenses: expenses,
+        savings,
+        savingsRate,
+      };
+
+      const blob = format === 'pdf'
+        ? await exportToPDF(options)
+        : await exportToImage(options);
+
+      const filename = format === 'pdf'
+        ? `lifeos-finances-${selectedMonth}.pdf`
+        : `lifeos-finances-${selectedMonth}.png`;
+
+      downloadBlob(blob, filename);
+      setShowExport(false);
+    } catch (error) {
+      console.error('Export error:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
       {/* Header */}
@@ -50,14 +103,23 @@ export function Finances() {
             </button>
             <h1 className="text-3xl">Финансы</h1>
           </div>
-          <motion.button 
-            whileTap={{ scale: 0.95 }} 
-            onClick={() => setShowChat(true)} 
-            className="px-3 py-2 bg-gradient-to-r from-[#22C55E] to-[#4DA3FF] rounded-[12px] text-white font-bold flex items-center gap-1.5 shadow-lg shadow-[#22C55E]/30"
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span className="text-xs">AI</span>
-          </motion.button>
+          <div className="flex items-center gap-2">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowExport(true)}
+              className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform"
+            >
+              <Download className="w-5 h-5 text-white/70" />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowChat(true)}
+              className="px-3 py-2 bg-gradient-to-r from-[#22C55E] to-[#4DA3FF] rounded-[12px] text-white font-bold flex items-center gap-1.5 shadow-lg shadow-[#22C55E]/30"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span className="text-xs">AI</span>
+            </motion.button>
+          </div>
         </div>
         {/* Month Selector */}
         {availableMonths.length > 0 && (
@@ -229,6 +291,83 @@ export function Finances() {
           transactions.forEach(t => addTransaction(t));
         }} />}
         {showChat && <AIConsultantChat type="finance" onClose={() => setShowChat(false)} userData={{ income, expenses, savings, savingsRate, transactions: state.transactions }} />}
+
+        {/* Export Modal */}
+        {showExport && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setShowExport(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass-card rounded-t-[32px] w-full max-w-md p-6 pb-10"
+            >
+              <div className="w-12 h-1.5 rounded-full bg-white/20 mx-auto mb-6" />
+              <h3 className="text-xl font-bold text-white mb-2">Экспорт финансов</h3>
+              <p className="text-white/50 text-sm mb-6">Выберите формат для периода: {getMonthDisplay(selectedMonth)}</p>
+
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleExport('pdf')}
+                  disabled={isExporting}
+                  className="glass-card rounded-[20px] p-5 flex flex-col items-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#EF4444] to-[#EF4444]/60 flex items-center justify-center">
+                    <FileText className="w-7 h-7 text-white" />
+                  </div>
+                  <span className="text-white font-medium text-sm">PDF отчёт</span>
+                  <span className="text-white/40 text-xs">Таблица с итогами</span>
+                </motion.button>
+
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleExport('image')}
+                  disabled={isExporting}
+                  className="glass-card rounded-[20px] p-5 flex flex-col items-center gap-3 active:scale-95 transition-transform disabled:opacity-50"
+                >
+                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#4DA3FF] to-[#4DA3FF]/60 flex items-center justify-center">
+                    <Camera className="w-7 h-7 text-white" />
+                  </div>
+                  <span className="text-white font-medium text-sm">Скриншот</span>
+                  <span className="text-white/40 text-xs">PNG изображение</span>
+                </motion.button>
+              </div>
+
+              {isExporting && (
+                <div className="flex items-center justify-center gap-2 py-3 text-white/60 text-sm">
+                  <motion.div
+                    className="w-4 h-4 border-2 border-white/40 border-t-transparent rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                  />
+                  <span>Формирование отчёта...</span>
+                </div>
+              )}
+
+              {!isPremium && (
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  onClick={() => showPaywall('export')}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#4DA3FF] to-[#A855F7] text-white text-sm font-semibold mt-2"
+                >
+                  Активировать Premium для экспорта
+                </motion.button>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

@@ -23,9 +23,15 @@ const premiumFeatures = [
   },
   {
     icon: TrendingUp,
+    title: 'Экспорт финансов',
+    description: 'PDF отчёты и скриншоты транзакций с аналитикой',
+    color: '#A855F7',
+  },
+  {
+    icon: TrendingUp,
     title: 'Безлимитные AI-запросы',
     description: 'Бесплатно — 3 запроса в день. Подписка снимает ограничение',
-    color: '#A855F7',
+    color: '#EF4444',
   },
 ];
 
@@ -44,6 +50,8 @@ export function PaywallModal() {
         return 'AI Консультант';
       case 'ai-limit':
         return 'Дневной лимит исчерпан';
+      case 'export':
+        return 'Экспорт финансов';
       default:
         return 'LifeOS Premium';
     }
@@ -53,6 +61,8 @@ export function PaywallModal() {
     switch (paywallFeature) {
       case 'ai-limit':
         return 'Вы использовали 3 бесплатных AI-запроса сегодня. Оформите подписку для безлимита.';
+      case 'export':
+        return 'Экспорт финансовых отчётов в PDF и PNG доступен с подпиской Premium.';
       default:
         return 'Эта функция доступна с подпиской LifeOS Premium';
     }

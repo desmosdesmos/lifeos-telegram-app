@@ -21,7 +21,9 @@
       "Bash(findstr *)",
       "Bash(git rebase *)",
       "Bash(git stash)",
-      "Bash(git reset *)"
+      "Bash(git reset *)",
+      "Bash(yarn add *)",
+      "Bash(pnpm add *)"
     ]
   },
   "$version": 3
