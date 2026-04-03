@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Utensils, Moon, Dumbbell, CreditCard, Target, Zap, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
+import { useBottomBar } from '../context/BottomBarContext';
 import { AddMealModal } from './Nutrition';
 import { AddTransactionModal } from './Finances';
 
@@ -50,8 +51,14 @@ const categories = [
 export function QuickAdd() {
   const navigate = useNavigate();
   const { state, addTransaction } = useApp();
+  const { show } = useBottomBar();
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showAddFinance, setShowAddFinance] = useState(false);
+
+  useEffect(() => {
+    show();
+    return () => show();
+  }, []);
 
   const todayStats = {
     meals: state.meals.length,

@@ -54,6 +54,7 @@ export function AIChat() {
     return () => {
       document.removeEventListener('focusin', handleFocusIn);
       document.removeEventListener('focusout', handleFocusOut);
+      show();
     };
   }, []);
 
