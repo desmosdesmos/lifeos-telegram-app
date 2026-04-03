@@ -1,9 +1,10 @@
 import { motion } from 'motion/react';
-import { ChevronLeft, User, Ruler, Weight, Target, Zap, Edit2, Save, X, RotateCcw, Camera } from 'lucide-react';
+import { ChevronLeft, User, Ruler, Weight, Target, Zap, Edit2, Save, X, RotateCcw, Camera, Crown, Check } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useBottomBar } from '../context/BottomBarContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 
 const goals = ['Набор мышечной массы', 'Похудение', 'Поддержание веса', 'Улучшение здоровья', 'Повышение продуктивности', 'Выносливость', 'Сушка'];
@@ -14,6 +15,7 @@ export function Profile() {
   const navigate = useNavigate();
   const { state, updateProfile, resetAllData } = useApp();
   const { hide, show } = useBottomBar();
+  const { isPremium, subscriptionExpiry, aiUsageCount, dailyLimit, showPaywall } = useSubscription();
   const { userAvatar: telegramAvatar } = useTelegramWebApp();
   const [isEditing, setIsEditing] = useState(false);
   const [editedData, setEditedData] = useState({
@@ -353,6 +355,102 @@ export function Profile() {
           </motion.div>
         </div>
         <p className="text-white/40 text-xs mt-4 text-center">Расчёт основан на ваших параметрах и цели</p>
+      </motion.div>
+
+      {/* Premium Subscription Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.55 }}
+        className={`relative z-10 glass-card rounded-[28px] p-6 mb-6 overflow-hidden ${
+          isPremium
+            ? 'bg-gradient-to-br from-[#F59E0B]/10 to-[#A855F7]/5 border border-[#F59E0B]/30'
+            : 'bg-gradient-to-br from-[#4DA3FF]/10 to-[#A855F7]/5'
+        }`}
+      >
+        {/* Animated orb */}
+        <motion.div
+          className={`absolute -top-16 -right-16 w-32 h-32 rounded-full blur-[60px] ${
+            isPremium
+              ? 'bg-gradient-to-br from-[#F59E0B]/20 to-transparent'
+              : 'bg-gradient-to-br from-[#A855F7]/20 to-transparent'
+          }`}
+          animate={{ scale: [1, 1.2, 1], rotate: [0, 180, 360] }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
+
+        <div className="flex items-center gap-3 mb-4 relative z-10">
+          <motion.div
+            className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{
+              backgroundColor: isPremium ? 'rgba(245, 158, 11, 0.2)' : 'rgba(168, 85, 247, 0.2)',
+            }}
+            whileHover={{ scale: 1.1, rotate: 10 }}
+          >
+            <Crown className="w-5 h-5" style={{ color: isPremium ? '#F59E0B' : '#A855F7' }} />
+          </motion.div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white">LifeOS Premium</h3>
+            {isPremium && subscriptionExpiry && (
+              <p className="text-xs text-white/50">
+                Активна до {new Date(subscriptionExpiry).toLocaleDateString('ru-RU')}
+              </p>
+            )}
+          </div>
+          {isPremium ? (
+            <div className="px-3 py-1 rounded-full bg-[#F59E0B]/20 text-[#F59E0B] text-xs font-semibold flex items-center gap-1">
+              <Check className="w-3 h-3" />
+              Активна
+            </div>
+          ) : (
+            <div className="px-3 py-1 rounded-full bg-white/10 text-white/50 text-xs font-semibold">
+              Free
+            </div>
+          )}
+        </div>
+
+        {/* Features or Usage */}
+        {isPremium ? (
+          <div className="space-y-2 relative z-10">
+            {[
+              { label: 'AI анализ по фото', active: true },
+              { label: 'AI-консультанты', active: true },
+              { label: 'AI Ассистент', active: true },
+              { label: 'Безлимитные запросы', active: true },
+            ].map((feature) => (
+              <div key={feature.label} className="flex items-center gap-2 text-sm text-white/70">
+                <Check className="w-4 h-4 text-[#22C55E]" />
+                <span>{feature.label}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="space-y-3 relative z-10">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-white/60">AI-запросы сегодня</span>
+              <span className="text-white font-semibold">
+                {aiUsageCount} / {dailyLimit}
+              </span>
+            </div>
+            <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden">
+              <motion.div
+                className="h-full rounded-full bg-gradient-to-r from-[#4DA3FF] to-[#A855F7]"
+                initial={{ width: 0 }}
+                animate={{ width: `${(aiUsageCount / dailyLimit) * 100}%` }}
+                transition={{ duration: 0.5 }}
+              />
+            </div>
+            <button
+              onClick={() => showPaywall('premium')}
+              className="w-full py-3 rounded-xl bg-gradient-to-r from-[#4DA3FF] to-[#A855F7] text-white text-sm font-semibold active:scale-[0.98] transition-transform"
+            >
+              Активировать Premium — 299₽/мес
+            </button>
+            <p className="text-white/30 text-xs text-center">
+              Фото-анализ, AI-консультанты, безлимитный AI-чат
+            </p>
+          </div>
+        )}
       </motion.div>
 
       {/* Reset Button */}

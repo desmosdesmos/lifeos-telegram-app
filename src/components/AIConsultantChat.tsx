@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { sendMessage, getQuickTip, analyzeImageWithContext, fileToBase64 } from '../utils/aiService';
 
 interface Message {
@@ -95,6 +96,7 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   const consultant = consultants[type];
   const questions = quickQuestions[type];
   const { hide, show } = useBottomBar();
+  const { isPremium, showPaywall, incrementAiUsage } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
@@ -123,6 +125,17 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!isPremium) {
+      showPaywall('photo-analysis');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (!incrementAiUsage()) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       setMessages(prev => [...prev, {
@@ -161,6 +174,8 @@ export function AIConsultantChat({ type, onClose, userData }: AIConsultantProps)
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
+
+    if (!incrementAiUsage()) return;
 
     setMessages([...messages, { type: 'user', text }]);
     setInput('');

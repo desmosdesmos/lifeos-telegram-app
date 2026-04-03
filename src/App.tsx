@@ -2,7 +2,9 @@ import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
 import { AppProvider, useApp } from './context/AppContext';
 import { BottomBarProvider } from './context/BottomBarContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import { Onboarding } from './pages/Onboarding';
+import { PaywallModal } from './components/PaywallModal';
 import './index.css';
 
 function AppContent() {
@@ -12,14 +14,21 @@ function AppContent() {
     return <Onboarding onComplete={completeOnboarding} />;
   }
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <PaywallModal />
+    </>
+  );
 }
 
 function App() {
   return (
     <AppProvider>
       <BottomBarProvider>
-        <AppContent />
+        <SubscriptionProvider>
+          <AppContent />
+        </SubscriptionProvider>
       </BottomBarProvider>
     </AppProvider>
   );

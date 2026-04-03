@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useState, useRef, useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 import { useBottomBar } from '../context/BottomBarContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { sendMessage, analyzeImageWithContext, fileToBase64 } from '../utils/aiService';
 
 interface Message {
@@ -29,6 +30,7 @@ export function AIChat() {
   const navigate = useNavigate();
   const { state } = useApp();
   const { hide, show } = useBottomBar();
+  const { isPremium, showPaywall, incrementAiUsage } = useSubscription();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [messages, setMessages] = useState<Message[]>(initialMessages);
   const [input, setInput] = useState('');
@@ -61,6 +63,17 @@ export function AIChat() {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (!isPremium) {
+      showPaywall('photo-analysis');
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    if (!incrementAiUsage()) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
 
     if (file.size > 5 * 1024 * 1024) {
       setMessages(prev => [...prev, {
@@ -100,6 +113,8 @@ export function AIChat() {
 
   const handleSend = async (text: string) => {
     if (!text.trim()) return;
+
+    if (!incrementAiUsage()) return;
 
     setMessages([...messages, { type: 'user', text }]);
     setInput('');

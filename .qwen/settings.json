@@ -18,7 +18,10 @@
       "Bash(git commit *)",
       "Bash(git push)",
       "Bash(netstat *)",
-      "Bash(findstr *)"
+      "Bash(findstr *)",
+      "Bash(git rebase *)",
+      "Bash(git stash)",
+      "Bash(git reset *)"
     ]
   },
   "$version": 3
