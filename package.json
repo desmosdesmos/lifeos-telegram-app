@@ -8,9 +8,16 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "preview:build": "vite preview --outDir dist"
+    "preview:build": "vite preview --outDir dist",
+    "cap:sync": "npx cap sync android",
+    "cap:open": "npx cap open android",
+    "android:build": "npm run build && npx cap sync android",
+    "android:dev": "npx cap run android"
   },
   "dependencies": {
+    "@capacitor/android": "^8.2.0",
+    "@capacitor/cli": "^8.2.0",
+    "@capacitor/core": "^8.2.0",
     "@telegram-apps/sdk": "^3.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

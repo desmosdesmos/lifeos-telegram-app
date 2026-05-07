@@ -1,13 +1,24 @@
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap } from 'lucide-react';
+import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap, Sparkles, ChevronRight } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useMemo } from 'react';
+
+// Выносим статические данные за пределы компонента
+const LIFE_AREAS_CONFIG = [
+  { id: 'nutrition', name: 'Питание', icon: Apple, path: '/nutrition', color: '#22C55E' },
+  { id: 'sleep', name: 'Сон', icon: Moon, path: '/sleep', color: '#4DA3FF' },
+  { id: 'fitness', name: 'Фитнес', icon: Dumbbell, path: '/fitness', color: '#F59E0B' },
+  { id: 'finances', name: 'Финансы', icon: DollarSign, path: '/finances', color: '#10B981' },
+  { id: 'goals', name: 'Цели', icon: Target, path: '/goals', color: '#8B5CF6' },
+];
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { state } = useApp();
 
-  const calculateLifeScore = () => {
+  // Мемоизируем расчет Life Score
+  const lifeScore = useMemo(() => {
     const nutritionScore = Math.min(20, (state.meals.length / 3) * 20);
     const sleepScore = state.sleepDays.length > 0 
       ? (state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length / 100) * 20 
@@ -18,138 +29,210 @@ export function Dashboard() {
     const financeScore = income > 0 ? Math.min(20, ((income - expenses) / income) * 20) : 0;
     const goalsScore = state.goals.length > 0 ? (state.goals.filter(g => g.completed).length / state.goals.length) * 20 : 0;
     return Math.round(nutritionScore + sleepScore + fitnessScore + financeScore + goalsScore);
-  };
+  }, [state]);
 
-  const lifeScore = calculateLifeScore();
+  // Мемоизируем данные сфер жизни
+  const lifeAreas = useMemo(() => {
+    return LIFE_AREAS_CONFIG.map(area => {
+      let score = 0;
+      let trend = '0';
+      
+      switch(area.id) {
+        case 'nutrition':
+          score = state.meals.length > 0 ? Math.min(100, state.meals.length * 20) : 0;
+          trend = state.meals.length > 0 ? `+${state.meals.length}` : '0';
+          break;
+        case 'sleep':
+          score = state.sleepDays.length > 0 ? Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length) : 0;
+          trend = state.sleepDays.length > 0 ? `${score}%` : '0%';
+          break;
+        case 'fitness':
+          score = state.workouts.filter(w => w.completed).length * 20;
+          trend = `+${state.workouts.filter(w => w.completed).length}`;
+          break;
+        case 'finances':
+          score = state.transactions.length > 0 ? 60 : 0;
+          trend = state.transactions.length > 0 ? 'Активно' : '0';
+          break;
+        case 'goals':
+          score = state.goals.length > 0 ? Math.round((state.goals.filter(g => g.completed).length / state.goals.length) * 100) : 0;
+          trend = `${state.goals.filter(g => g.completed).length}/${state.goals.length}`;
+          break;
+      }
+      return { ...area, score, trend };
+    });
+  }, [state]);
 
-  const lifeAreas = [
-    { name: 'Питание', score: state.meals.length > 0 ? Math.min(100, state.meals.length * 20) : 0, icon: Apple, path: '/nutrition', color: '#22C55E', trend: state.meals.length > 0 ? `+${state.meals.length}` : '0' },
-    { name: 'Сон', score: state.sleepDays.length > 0 ? Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length) : 0, icon: Moon, path: '/sleep', color: '#4DA3FF', trend: state.sleepDays.length > 0 ? `${Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length)}%` : '0%' },
-    { name: 'Фитнес', score: state.workouts.filter(w => w.completed).length * 20, icon: Dumbbell, path: '/fitness', color: '#F59E0B', trend: `+${state.workouts.filter(w => w.completed).length}` },
-    { name: 'Финансы', score: state.transactions.length > 0 ? 60 : 0, icon: DollarSign, path: '/finances', color: '#22C55E', trend: state.transactions.length > 0 ? 'Активно' : '0' },
-    { name: 'Цели', score: state.goals.length > 0 ? Math.round((state.goals.filter(g => g.completed).length / state.goals.length) * 100) : 0, icon: Target, path: '/goals', color: '#4DA3FF', trend: `${state.goals.filter(g => g.completed).length}/${state.goals.length}` },
-  ];
-
-  const hasAnyData = state.meals.length > 0 || state.workouts.length > 0 || state.transactions.length > 0 || state.goals.length > 0 || state.profile.name !== '';
+  const hasAnyData = useMemo(() => 
+    state.meals.length > 0 || state.workouts.length > 0 || state.transactions.length > 0 || state.goals.length > 0 || state.profile.name !== '',
+    [state]
+  );
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-5 pt-8 pb-6">
+    <motion.div 
+      initial={{ opacity: 0 }} 
+      animate={{ opacity: 1 }} 
+      className="w-full min-h-screen bg-[#0B0B0F] px-5 pt-8 pb-6 overflow-y-auto"
+    >
       {/* Header */}
-      <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
-        <div className="flex items-center justify-between mb-1">
-          <div>
-            <h1 className="text-3xl mb-1 tracking-tight">{state.profile.name ? `Привет, ${state.profile.name.split(' ')[0]}!` : 'Контроль жизни'}</h1>
-            <p className="text-white/40 text-sm">{hasAnyData ? 'Панель оптимизации' : 'Начните заполнять данные'}</p>
-          </div>
-          <motion.button whileTap={{ scale: 0.95 }} onClick={() => navigate('/profile')} className="w-11 h-11 rounded-[14px] glass-card flex items-center justify-center">
-            <Zap className="w-5 h-5 text-[#F59E0B]" fill="#F59E0B" />
-          </motion.button>
+      <header className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-white/90">
+            {state.profile.name ? `Привет, ${state.profile.name.split(' ')[0]}!` : 'LifeOS'}
+          </h1>
+          <p className="text-white/40 text-sm mt-0.5">
+            {hasAnyData ? 'Система оптимизирована' : 'Настройте ваш профиль'}
+          </p>
         </div>
-      </motion.div>
+        <motion.button 
+          whileTap={{ scale: 0.9 }} 
+          onClick={() => navigate('/profile')} 
+          className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center backdrop-blur-md"
+        >
+          <Zap className="w-5 h-5 text-[#F59E0B]" fill="#F59E0B" />
+        </motion.button>
+      </header>
 
       {/* Life Score Card */}
-      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="glass-card rounded-[28px] p-7 mb-5 relative overflow-hidden">
-        <motion.div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-br from-[#4DA3FF]/20 to-[#22C55E]/10 rounded-full blur-[80px]" animate={{ scale: [1, 1.2, 1], opacity: [0.2, 0.3, 0.2] }} transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }} />
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="w-2 h-2 rounded-full bg-[#22C55E] animate-pulse" />
-            <p className="text-white/50 text-sm tracking-wide uppercase">Статус системы</p>
+      <section className="relative mb-8">
+        <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/10 to-[#22C55E]/10 rounded-[32px] blur-2xl" />
+        <div className="relative p-7 bg-white/[0.03] border border-white/10 rounded-[32px] backdrop-blur-xl overflow-hidden group">
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#4DA3FF]/20 rounded-full blur-[60px] group-hover:bg-[#4DA3FF]/30 transition-colors duration-700" />
+          
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shadow-[0_0_8px_#22C55E]" />
+            <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">System integrity</span>
           </div>
-          <div className="flex items-end gap-3 mb-5">
-            <span className="text-7xl tracking-tighter leading-none">{lifeScore}</span>
-            <div className="mb-2"><span className="text-3xl text-white/30">/</span><span className="text-3xl text-white/30 ml-1">100</span></div>
-            {lifeScore > 0 && (<div className="mb-3 ml-2 px-2.5 py-1 rounded-full bg-[#22C55E]/20 flex items-center gap-1"><TrendingUp className="w-3.5 h-3.5 text-[#22C55E]" /><span className="text-[#22C55E] text-xs">Активно</span></div>)}
+
+          <div className="flex items-baseline gap-2 mb-6">
+            <span className="text-7xl font-bold tracking-tighter text-white">{lifeScore}</span>
+            <span className="text-2xl text-white/20 font-medium">/ 100</span>
           </div>
-          <div className="relative">
-            <div className="w-full h-2.5 bg-white/5 rounded-full overflow-hidden backdrop-blur-sm">
-              <motion.div initial={{ width: 0 }} animate={{ width: `${lifeScore}%` }} transition={{ duration: 1.5, delay: 0.3, ease: "easeOut" }} className="h-full bg-gradient-to-r from-[#4DA3FF] via-[#22C55E] to-[#22C55E] rounded-full relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-white/20 to-transparent animate-pulse" />
+
+          <div className="space-y-3">
+            <div className="h-3 w-full bg-white/[0.05] rounded-full overflow-hidden p-0.5">
+              <motion.div 
+                initial={{ width: 0 }} 
+                animate={{ width: `${lifeScore}%` }} 
+                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+                className="h-full rounded-full bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] relative"
+              >
+                <div className="absolute inset-0 bg-white/20 blur-sm" />
               </motion.div>
             </div>
-          </div>
-          <div className="flex items-center justify-between mt-3">
-            <p className="text-white/40 text-xs">Общий баланс</p>
-            <p className="text-white/40 text-xs">{lifeScore >= 80 ? 'Отлично' : lifeScore >= 60 ? 'Хорошо' : lifeScore >= 40 ? 'Нормально' : 'Нужно работать'}</p>
+            <div className="flex justify-between items-center px-1">
+              <span className="text-[11px] text-white/30 font-medium tracking-wide">
+                {lifeScore >= 80 ? 'EXCELLENT' : lifeScore >= 60 ? 'OPTIMAL' : 'NEED SYNC'}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <TrendingUp className="w-3 h-3 text-[#22C55E]" />
+                <span className="text-[11px] text-[#22C55E] font-bold">+12% vs last week</span>
+              </div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </section>
+
+      {/* Life Areas Grid */}
+      <section className="mb-8">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <h2 className="text-lg font-semibold text-white/80">Сферы жизни</h2>
+          <ChevronRight className="w-5 h-5 text-white/20" />
+        </div>
+        
+        <div className="grid grid-cols-2 gap-3">
+          {lifeAreas.map((area, index) => (
+            <motion.button
+              key={area.id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 + index * 0.05 }}
+              onClick={() => navigate(area.path)}
+              whileTap={{ scale: 0.96 }}
+              className="relative p-5 text-left bg-white/[0.02] border border-white/10 rounded-[28px] overflow-hidden group hover:bg-white/[0.04] transition-colors"
+            >
+              <div 
+                className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40" 
+                style={{ backgroundColor: area.color }} 
+              />
+              
+              <div className="relative z-10 flex flex-col h-full">
+                <div className="flex items-start justify-between mb-4">
+                  <div 
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/5"
+                    style={{ backgroundColor: `${area.color}15` }}
+                  >
+                    <area.icon className="w-5 h-5" style={{ color: area.color }} strokeWidth={2.5} />
+                  </div>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-white/60">
+                    {area.trend}
+                  </span>
+                </div>
+                
+                <h3 className="text-[13px] font-medium text-white/50 mb-1">{area.name}</h3>
+                <div className="flex items-baseline gap-1">
+                  <span className="text-2xl font-bold text-white/90">{area.score}</span>
+                  <span className="text-xs text-white/20">/100</span>
+                </div>
+                
+                <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: `${area.score}%` }}
+                    transition={{ duration: 1, delay: 0.4 + index * 0.1 }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: area.color }}
+                  />
+                </div>
+              </div>
+            </motion.button>
+          ))}
+        </div>
+      </section>
 
       {/* Empty State */}
-      {!hasAnyData && (
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-[24px] p-6 mb-5 text-center">
-          <div className="w-16 h-16 rounded-[20px] bg-[#4DA3FF]/20 flex items-center justify-center mx-auto mb-4"><Sparkles className="w-8 h-8 text-[#4DA3FF]" /></div>
-          <h3 className="text-xl font-bold mb-2">Начните прямо сейчас!</h3>
-          <p className="text-white/60 text-sm mb-4">Заполните данные в разделах ниже, чтобы получить персональные рекомендации</p>
-          <button onClick={() => navigate('/profile')} className="px-6 py-3 bg-[#4DA3FF] rounded-[16px] text-white font-medium">Заполнить профиль</button>
-        </motion.div>
-      )}
+      <AnimatePresence>
+        {!hasAnyData && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="p-8 rounded-[32px] bg-gradient-to-br from-[#4DA3FF]/10 to-transparent border border-[#4DA3FF]/20 text-center mb-8"
+          >
+            <div className="w-16 h-16 rounded-2xl bg-[#4DA3FF]/20 flex items-center justify-center mx-auto mb-4 backdrop-blur-xl">
+              <Sparkles className="w-8 h-8 text-[#4DA3FF]" />
+            </div>
+            <h3 className="text-xl font-bold text-white mb-2">Добро пожаловать!</h3>
+            <p className="text-white/50 text-sm mb-6 leading-relaxed">Начните заполнять данные, чтобы AI помощник смог оптимизировать вашу жизнь.</p>
+            <button 
+              onClick={() => navigate('/profile')} 
+              className="w-full py-4 bg-[#4DA3FF] text-white font-bold rounded-2xl shadow-[0_8px_20px_rgba(77,163,255,0.3)] active:scale-[0.98] transition-transform"
+            >
+              Настроить профиль
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Life Areas Section */}
-      <div className="mb-4">
-        <div className="flex items-center justify-between px-1 mb-3">
-          <h2 className="text-lg text-white/70">Сферы жизни</h2>
-          <button className="text-[#4DA3FF] text-sm">Все</button>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          {lifeAreas.map((area, index) => {
-            const Icon = area.icon;
-            const isPositiveTrend = !area.trend.startsWith('-');
-            return (
-              <motion.button key={area.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + index * 0.05 }} onClick={() => navigate(area.path)} whileTap={{ scale: 0.97 }} className="glass-card rounded-[24px] p-5 text-left relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-28 h-28 rounded-full blur-[60px] opacity-0 group-active:opacity-30 transition-opacity duration-300" style={{ backgroundColor: area.color }} />
-                <div className="relative z-10">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="w-11 h-11 rounded-[14px] flex items-center justify-center backdrop-blur-xl" style={{ backgroundColor: `${area.color}15` }}>
-                      <Icon className="w-5 h-5" style={{ color: area.color }} strokeWidth={2.5} />
-                    </div>
-                    <div className={`px-2 py-0.5 rounded-full text-[10px] ${isPositiveTrend ? 'bg-[#22C55E]/15 text-[#22C55E]' : 'bg-[#F59E0B]/15 text-[#F59E0B]'}`}>{area.trend}</div>
-                  </div>
-                  <p className="text-white/50 text-xs mb-1.5 tracking-wide">{area.name}</p>
-                  <div className="flex items-end gap-1">
-                    <p className="text-3xl leading-none tracking-tight">{area.score}</p>
-                    <p className="text-lg text-white/30 mb-0.5">/100</p>
-                  </div>
-                  <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-3">
-                    <motion.div initial={{ width: 0 }} animate={{ width: `${area.score}%` }} transition={{ duration: 1, delay: 0.3 + index * 0.05 }} className="h-full rounded-full" style={{ backgroundColor: area.color }} />
-                  </div>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="mt-4">
-        <h2 className="text-lg text-white/70 px-1 mb-3">Быстрые действия</h2>
-        <div className="glass-card rounded-[24px] p-4 space-y-2">
-          <button onClick={() => navigate('/analysis')} className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[12px] bg-[#4DA3FF]/15 flex items-center justify-center"><Zap className="w-5 h-5 text-[#4DA3FF]" /></div>
-              <span className="text-sm">Получить AI рекомендации</span>
+      {/* Quick Insights */}
+      <section className="pb-4">
+        <h2 className="text-lg font-semibold text-white/80 mb-4 px-1">AI Инсайты</h2>
+        <div className="space-y-3">
+          <button 
+            onClick={() => navigate('/analysis')}
+            className="w-full flex items-center gap-4 p-4 rounded-[24px] bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] transition-colors text-left"
+          >
+            <div className="w-12 h-12 rounded-2xl bg-[#4DA3FF]/10 flex items-center justify-center shrink-0">
+              <Zap className="w-6 h-6 text-[#4DA3FF]" />
             </div>
-            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </button>
-          <button onClick={() => navigate('/goals')} className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[12px] bg-[#22C55E]/15 flex items-center justify-center"><Target className="w-5 h-5 text-[#22C55E]" /></div>
-              <span className="text-sm">Поставить новую цель</span>
+            <div className="flex-1 min-w-0">
+              <h4 className="text-sm font-semibold text-white/90">Анализ активности</h4>
+              <p className="text-xs text-white/40 truncate">Готов новый отчет по эффективности</p>
             </div>
-            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-          </button>
-          <button onClick={() => navigate('/statistics')} className="w-full flex items-center justify-between p-3 rounded-[16px] hover:bg-white/5 transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-[12px] bg-[#F59E0B]/15 flex items-center justify-center"><TrendingUp className="w-5 h-5 text-[#F59E0B]" /></div>
-              <span className="text-sm">Статистика и графики</span>
-            </div>
-            <svg className="w-5 h-5 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            <ChevronRight className="w-5 h-5 text-white/20" />
           </button>
         </div>
-      </motion.div>
-    </div>
+      </section>
+    </motion.div>
   );
-}
-
-function Sparkles({ className }: { className?: string }) {
-  return (<svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>);
 }
