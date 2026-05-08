@@ -1,6 +1,9 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { calculateMacroTargets, type MacroTargets } from '../utils/macroCalculator';
+import { useAuth } from './AuthContext';
+import { db } from '../lib/firebase';
+import { doc, setDoc, onSnapshot } from 'firebase/firestore';
 
 interface UserProfile {
   name: string;
@@ -148,9 +151,10 @@ interface AppContextType {
 
 const AppContext = createContext<AppContextType | null>(null);
 
-const STORAGE_KEY = 'lifeos_app_data_v2';
+const STORAGE_KEY = 'lifeos_app_data_v3';
 
 export function AppProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [state, setState] = useState<AppState>(() => {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
@@ -163,11 +167,44 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return defaultState;
   });
 
+  // Загрузка данных из Firebase при входе
+  useEffect(() => {
+    if (!user) return;
+
+    console.log('🔄 Syncing with Firebase for user:', user.uid);
+    const userDocRef = doc(db, 'users', user.uid);
+
+    // Подписываемся на изменения в облаке
+    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
+      if (docSnap.exists()) {
+        const cloudData = docSnap.data() as AppState;
+        console.log('✅ Data loaded from Cloud');
+        setState(prev => ({
+          ...prev,
+          ...cloudData,
+          // Сохраняем локальные topUsers, так как они пока статические
+          topUsers: defaultState.topUsers 
+        }));
+      } else {
+        // Если в облаке пусто, отправляем туда текущие локальные данные
+        console.log('📡 First sync: pushing local data to Cloud');
+        setDoc(userDocRef, state);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
+
+  // Сохранение локально и в облако при изменениях
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    
+    if (user) {
+      const userDocRef = doc(db, 'users', user.uid);
+      setDoc(userDocRef, state).catch(err => console.error('❌ Cloud Save Error:', err));
+    }
+  }, [state, user]);
 
-  // Calculate macro targets based on profile
   const macroTargets = calculateMacroTargets({
     weight: state.profile.weight,
     height: state.profile.height,
@@ -177,123 +214,123 @@ export function AppProvider({ children }: { children: ReactNode }) {
     lifestyle: state.profile.lifestyle,
   });
 
-  const updateProfile = (profile: Partial<UserProfile>) => {
+  const updateProfile = useCallback((profile: Partial<UserProfile>) => {
     setState(prev => ({ ...prev, profile: { ...prev.profile, ...profile } }));
-  };
+  }, []);
 
-  const addMeal = (meal: Omit<Meal, 'id'>) => {
+  const addMeal = useCallback((meal: Omit<Meal, 'id'>) => {
     setState(prev => ({
       ...prev,
       meals: [...prev.meals, { ...meal, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const removeMeal = (id: number) => {
+  const removeMeal = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       meals: prev.meals.filter(m => m.id !== id),
     }));
-  };
+  }, []);
 
-  const addSleepDay = (sleepDay: Omit<SleepDay, 'id'>) => {
+  const addSleepDay = useCallback((sleepDay: Omit<SleepDay, 'id'>) => {
     setState(prev => ({
       ...prev,
       sleepDays: [...prev.sleepDays, { ...sleepDay, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const updateSleepDay = (id: number, sleepDay: Partial<SleepDay>) => {
+  const updateSleepDay = useCallback((id: number, sleepDay: Partial<SleepDay>) => {
     setState(prev => ({
       ...prev,
       sleepDays: prev.sleepDays.map(s => s.id === id ? { ...s, ...sleepDay } : s),
     }));
-  };
+  }, []);
 
-  const removeSleepDay = (id: number) => {
+  const removeSleepDay = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       sleepDays: prev.sleepDays.filter(s => s.id !== id),
     }));
-  };
+  }, []);
 
-  const addWorkout = (workout: Omit<Workout, 'id'>) => {
+  const addWorkout = useCallback((workout: Omit<Workout, 'id'>) => {
     setState(prev => ({
       ...prev,
       workouts: [...prev.workouts, { ...workout, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const removeWorkout = (id: number) => {
+  const removeWorkout = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       workouts: prev.workouts.filter(w => w.id !== id),
     }));
-  };
+  }, []);
 
-  const updateWorkout = (id: number, workout: Partial<Workout>) => {
+  const updateWorkout = useCallback((id: number, workout: Partial<Workout>) => {
     setState(prev => ({
       ...prev,
       workouts: prev.workouts.map(w => w.id === id ? { ...w, ...workout } : w),
     }));
-  };
+  }, []);
 
-  const addProgressPhoto = (photo: Omit<ProgressPhoto, 'id'>) => {
+  const addProgressPhoto = useCallback((photo: Omit<ProgressPhoto, 'id'>) => {
     setState(prev => ({
       ...prev,
       progressPhotos: [...prev.progressPhotos, { ...photo, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const removeProgressPhoto = (id: number) => {
+  const removeProgressPhoto = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       progressPhotos: prev.progressPhotos.filter(p => p.id !== id),
     }));
-  };
+  }, []);
 
-  const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
+  const addTransaction = useCallback((transaction: Omit<Transaction, 'id'>) => {
     setState(prev => ({
       ...prev,
       transactions: [...prev.transactions, { ...transaction, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const removeTransaction = (id: number) => {
+  const removeTransaction = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       transactions: prev.transactions.filter(t => t.id !== id),
     }));
-  };
+  }, []);
 
-  const addGoal = (goal: Omit<Goal, 'id'>) => {
+  const addGoal = useCallback((goal: Omit<Goal, 'id'>) => {
     setState(prev => ({
       ...prev,
       goals: [...prev.goals, { ...goal, id: Date.now() }],
     }));
-  };
+  }, []);
 
-  const updateGoal = (id: number, goal: Partial<Goal>) => {
+  const updateGoal = useCallback((id: number, goal: Partial<Goal>) => {
     setState(prev => ({
       ...prev,
       goals: prev.goals.map(g => g.id === id ? { ...g, ...goal } : g),
     }));
-  };
+  }, []);
 
-  const removeGoal = (id: number) => {
+  const removeGoal = useCallback((id: number) => {
     setState(prev => ({
       ...prev,
       goals: prev.goals.filter(g => g.id !== id),
     }));
-  };
+  }, []);
 
-  const completeOnboarding = () => {
+  const completeOnboarding = useCallback(() => {
     setState(prev => ({ ...prev, hasCompletedOnboarding: true }));
-  };
+  }, []);
 
-  const resetAllData = () => {
+  const resetAllData = useCallback(() => {
     setState(defaultState);
     localStorage.removeItem(STORAGE_KEY);
-  };
+  }, []);
 
   return (
     <AppContext.Provider value={{
