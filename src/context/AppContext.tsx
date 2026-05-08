@@ -11,6 +11,15 @@ interface UserProfile {
   goal: string;
   lifestyle: string;
   avatarUrl?: string;
+  showInLeaderboard?: boolean;
+}
+
+interface TopUser {
+  id: string;
+  name: string;
+  score: number;
+  avatarUrl?: string;
+  isMe?: boolean;
 }
 
 interface Meal {
@@ -84,6 +93,7 @@ interface AppState {
   transactions: Transaction[];
   goals: Goal[];
   hasCompletedOnboarding: boolean;
+  topUsers: TopUser[];
 }
 
 const defaultState: AppState = {
@@ -95,6 +105,7 @@ const defaultState: AppState = {
     gender: 'male',
     goal: 'Улучшение здоровья',
     lifestyle: 'Умеренно активный',
+    showInLeaderboard: false,
   },
   meals: [],
   sleepDays: [],
@@ -103,6 +114,13 @@ const defaultState: AppState = {
   transactions: [],
   goals: [],
   hasCompletedOnboarding: false,
+  topUsers: [
+    { id: '1', name: 'Александр', score: 98, avatarUrl: 'https://i.pravatar.cc/150?u=1' },
+    { id: '2', name: 'Мария', score: 95, avatarUrl: 'https://i.pravatar.cc/150?u=2' },
+    { id: '3', name: 'Дмитрий', score: 92, avatarUrl: 'https://i.pravatar.cc/150?u=3' },
+    { id: '4', name: 'Елена', score: 89, avatarUrl: 'https://i.pravatar.cc/150?u=4' },
+    { id: '5', name: 'Иван', score: 85, avatarUrl: 'https://i.pravatar.cc/150?u=5' },
+  ],
 };
 
 interface AppContextType {

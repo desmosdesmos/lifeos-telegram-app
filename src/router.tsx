@@ -11,6 +11,7 @@ import { Finances } from './pages/Finances';
 import { Goals } from './pages/Goals';
 import { Statistics } from './pages/Statistics';
 import { QuickAdd } from './pages/QuickAdd';
+import { Leaderboard } from './pages/Leaderboard';
 
 export const router = createHashRouter([
   {
@@ -28,6 +29,7 @@ export const router = createHashRouter([
       { path: 'profile', Component: Profile },
       { path: 'statistics', Component: Statistics },
       { path: 'quick-add', Component: QuickAdd },
+      { path: 'leaderboard', Component: Leaderboard },
     ],
   },
 ]);
