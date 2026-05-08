@@ -58,12 +58,12 @@ const steps = [
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-[#0B0B0F] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
       <div className="min-h-screen flex flex-col">
         {/* Header */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-[10px] bg-gradient-to-br from-[#4DA3FF] to-[#22C55E] flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center">
               <Sparkles className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold">LifeOS</span>
@@ -84,24 +84,24 @@ export function Onboarding({ onComplete }: OnboardingProps) {
               return (
                 <motion.div
                   key={index}
-                  initial={{ opacity: 0, x: -20 }}
+                  initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="glass-card rounded-[20px] p-5"
+                  transition={{ delay: index * 0.05 }}
+                  className="glass-card rounded-[24px] p-5"
                 >
                   <div className="flex items-center gap-4">
                     <div
-                      className="w-14 h-14 rounded-[16px] flex items-center justify-center flex-shrink-0"
-                      style={{ backgroundColor: `${step.color}20` }}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${step.color}15` }}
                     >
-                      <Icon className="w-7 h-7" style={{ color: step.color }} />
+                      <Icon className="w-6 h-6" style={{ color: step.color }} />
                     </div>
                     <div className="flex-1">
-                      <h3 className="text-lg font-medium mb-1">{step.title}</h3>
-                      <p className="text-white/60 text-sm leading-relaxed">{step.description}</p>
+                      <h3 className="text-base font-semibold mb-0.5">{step.title}</h3>
+                      <p className="text-white/50 text-xs leading-relaxed">{step.description}</p>
                     </div>
-                    <div className="w-8 h-8 rounded-full bg-[#22C55E]/20 flex items-center justify-center">
-                      <Check className="w-5 h-5 text-[#22C55E]" />
+                    <div className="w-6 h-6 rounded-full bg-green-500/10 flex items-center justify-center shrink-0">
+                      <Check className="w-3.5 h-3.5 text-green-500" />
                     </div>
                   </div>
                 </motion.div>
@@ -111,20 +111,20 @@ export function Onboarding({ onComplete }: OnboardingProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-6 sticky bottom-0 bg-gradient-to-t from-[#0B0B0F] via-[#0B0B0F] to-transparent pt-12">
+        <div className="p-6 sticky bottom-0 bg-gradient-to-t from-background via-background to-transparent pt-12">
           <motion.button
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.8 }}
+            transition={{ delay: 0.5 }}
             whileTap={{ scale: 0.98 }}
             onClick={onComplete}
-            className="w-full py-4 bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] rounded-[20px] text-white font-bold text-lg flex items-center justify-center gap-2"
+            className="w-full py-4 bg-primary rounded-2xl text-white font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20"
           >
             Начать использовать
             <ChevronRight className="w-5 h-5" />
           </motion.button>
-          <p className="text-center text-white/40 text-xs mt-4">
-            Настройте профиль после завершения
+          <p className="text-center text-white/30 text-[10px] mt-4 font-medium uppercase tracking-wider">
+            Оптимизация вашей эффективности
           </p>
         </div>
       </div>

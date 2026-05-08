@@ -1,4 +1,4 @@
-import { createBrowserRouter } from 'react-router-dom';
+import { createHashRouter } from 'react-router-dom';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Nutrition } from './pages/Nutrition';
@@ -12,19 +12,10 @@ import { Goals } from './pages/Goals';
 import { Statistics } from './pages/Statistics';
 import { QuickAdd } from './pages/QuickAdd';
 
-export const router = createBrowserRouter([
+export const router = createHashRouter([
   {
     path: '/',
     Component: Layout,
-    errorElement: (
-      <div className="min-h-screen bg-[#0B0B0F] flex items-center justify-center p-6">
-        <div className="text-center">
-          <h1 className="text-2xl text-white mb-2">Упс! Что-то пошло не так</h1>
-          <p className="text-white/60 mb-4">Попробуйте обновить страницу</p>
-          <button onClick={() => window.location.reload()} className="px-6 py-3 bg-[#4DA3FF] rounded-xl text-white font-medium">Обновить</button>
-        </div>
-      </div>
-    ),
     children: [
       { index: true, Component: Dashboard },
       { path: 'nutrition', Component: Nutrition },

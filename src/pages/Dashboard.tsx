@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router';
-import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap, Sparkles, ChevronRight } from 'lucide-react';
+import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap, Sparkles, ChevronRight, User } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useMemo } from 'react';
 
@@ -72,36 +72,33 @@ export function Dashboard() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="w-full min-h-screen bg-[#0B0B0F] px-5 pt-8 pb-6 overflow-y-auto"
+      className="w-full min-h-screen bg-background px-5 pt-8 pb-6 overflow-y-auto"
     >
       {/* Header */}
       <header className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white/90">
+          <h1 className="text-2xl font-bold tracking-tight text-white/90">
             {state.profile.name ? `Привет, ${state.profile.name.split(' ')[0]}!` : 'LifeOS'}
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-white/40 text-xs mt-0.5">
             {hasAnyData ? 'Система оптимизирована' : 'Настройте ваш профиль'}
           </p>
         </div>
         <motion.button 
           whileTap={{ scale: 0.9 }} 
           onClick={() => navigate('/profile')} 
-          className="w-12 h-12 rounded-2xl bg-white/[0.03] border border-white/10 flex items-center justify-center backdrop-blur-md"
+          className="w-10 h-10 rounded-full bg-white/[0.03] border border-white/10 flex items-center justify-center backdrop-blur-md"
         >
-          <Zap className="w-5 h-5 text-[#F59E0B]" fill="#F59E0B" />
+          <User className="w-5 h-5 text-white/60" />
         </motion.button>
       </header>
 
-      {/* Life Score Card */}
-      <section className="relative mb-8">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#4DA3FF]/10 to-[#22C55E]/10 rounded-[32px] blur-2xl" />
-        <div className="relative p-7 bg-white/[0.03] border border-white/10 rounded-[32px] backdrop-blur-xl overflow-hidden group">
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-[#4DA3FF]/20 rounded-full blur-[60px] group-hover:bg-[#4DA3FF]/30 transition-colors duration-700" />
-          
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1.5 h-1.5 rounded-full bg-[#22C55E] shadow-[0_0_8px_#22C55E]" />
-            <span className="text-[10px] font-bold text-white/40 uppercase tracking-[0.2em]">System integrity</span>
+      {/* Life Score Card - Simplified Premium Hero */}
+      <section className="relative mb-10">
+        <div className="relative p-8 bg-white/[0.02] border border-white/5 rounded-[32px] overflow-hidden">
+          <div className="flex items-center gap-2 mb-6">
+            <div className="w-2 h-2 rounded-full bg-primary animate-pulse" />
+            <span className="text-[11px] font-bold text-white/30 uppercase tracking-[0.2em]">Индекс здоровья системы</span>
           </div>
 
           <div className="flex items-baseline gap-2 mb-6">
@@ -109,73 +106,63 @@ export function Dashboard() {
             <span className="text-2xl text-white/20 font-medium">/ 100</span>
           </div>
 
-          <div className="space-y-3">
-            <div className="h-3 w-full bg-white/[0.05] rounded-full overflow-hidden p-0.5">
+          <div className="space-y-4">
+            <div className="h-1.5 w-full bg-white/[0.05] rounded-full overflow-hidden">
               <motion.div 
                 initial={{ width: 0 }} 
                 animate={{ width: `${lifeScore}%` }} 
-                transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-                className="h-full rounded-full bg-gradient-to-r from-[#4DA3FF] to-[#22C55E] relative"
-              >
-                <div className="absolute inset-0 bg-white/20 blur-sm" />
-              </motion.div>
+                transition={{ duration: 1.2, ease: "circOut" }}
+                className="h-full rounded-full bg-primary shadow-[0_0_12px_rgba(77,163,255,0.4)]"
+              />
             </div>
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] text-white/30 font-medium tracking-wide">
-                {lifeScore >= 80 ? 'EXCELLENT' : lifeScore >= 60 ? 'OPTIMAL' : 'NEED SYNC'}
+            <div className="flex justify-between items-center">
+              <span className="text-[11px] text-white/40 font-semibold tracking-wider">
+                {lifeScore >= 80 ? 'ОТЛИЧНО' : lifeScore >= 60 ? 'ОПТИМАЛЬНО' : 'НУЖНА СИНХР.'}
               </span>
               <div className="flex items-center gap-1.5">
-                <TrendingUp className="w-3 h-3 text-[#22C55E]" />
-                <span className="text-[11px] text-[#22C55E] font-bold">+12% vs last week</span>
+                <TrendingUp className="w-3.5 h-3.5 text-green-500" />
+                <span className="text-[11px] text-green-500 font-bold">+12% за неделю</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Life Areas Grid */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4 px-1">
-          <h2 className="text-lg font-semibold text-white/80">Сферы жизни</h2>
+      {/* Life Areas List - Better Readability */}
+      <section className="mb-10">
+        <div className="flex items-center justify-between mb-5 px-1">
+          <h2 className="text-lg font-bold text-white/90">Сферы жизни</h2>
           <ChevronRight className="w-5 h-5 text-white/20" />
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-3">
           {lifeAreas.map((area, index) => (
             <motion.button
               key={area.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + index * 0.05 }}
               onClick={() => navigate(area.path)}
-              whileTap={{ scale: 0.96 }}
-              className="relative p-5 text-left bg-white/[0.02] border border-white/10 rounded-[28px] overflow-hidden group hover:bg-white/[0.04] transition-colors"
+              whileTap={{ scale: 0.98 }}
+              className="w-full p-4 flex items-center gap-4 bg-white/[0.02] border border-white/5 rounded-2xl hover:bg-white/[0.04] transition-colors"
             >
               <div 
-                className="absolute -top-10 -right-10 w-24 h-24 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40" 
-                style={{ backgroundColor: area.color }} 
-              />
+                className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
+                style={{ backgroundColor: `${area.color}15` }}
+              >
+                <area.icon className="w-6 h-6" style={{ color: area.color }} strokeWidth={2} />
+              </div>
               
-              <div className="relative z-10 flex flex-col h-full">
-                <div className="flex items-start justify-between mb-4">
-                  <div 
-                    className="w-10 h-10 rounded-2xl flex items-center justify-center border border-white/5"
-                    style={{ backgroundColor: `${area.color}15` }}
-                  >
-                    <area.icon className="w-5 h-5" style={{ color: area.color }} strokeWidth={2.5} />
+              <div className="flex-1 text-left">
+                <div className="flex items-center justify-between mb-1.5">
+                  <h3 className="text-sm font-semibold text-white/80">{area.name}</h3>
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-sm font-bold text-white">{area.score}</span>
+                    <span className="text-[10px] text-white/20">/100</span>
                   </div>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-lg bg-white/5 text-white/60">
-                    {area.trend}
-                  </span>
                 </div>
                 
-                <h3 className="text-[13px] font-medium text-white/50 mb-1">{area.name}</h3>
-                <div className="flex items-baseline gap-1">
-                  <span className="text-2xl font-bold text-white/90">{area.score}</span>
-                  <span className="text-xs text-white/20">/100</span>
-                </div>
-                
-                <div className="mt-4 h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${area.score}%` }}
@@ -184,6 +171,11 @@ export function Dashboard() {
                     style={{ backgroundColor: area.color }}
                   />
                 </div>
+              </div>
+
+              <div className="text-right ml-2">
+                <span className="text-[10px] font-bold text-white/30 block mb-0.5 uppercase tracking-wider">Тренд</span>
+                <span className="text-xs font-bold text-white/60">{area.trend}</span>
               </div>
             </motion.button>
           ))}

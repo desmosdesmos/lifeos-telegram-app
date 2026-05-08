@@ -5,13 +5,15 @@ const config: CapacitorConfig = {
   appName: 'Lumina LifeOS',
   webDir: 'dist',
   server: {
-    androidScheme: 'https',
-    allowNavigation: ['lumina-server-one.vercel.app', '*.vercel.app'],
+    androidScheme: 'https'
   },
+  backgroundColor: '#09090B',
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
-      backgroundColor: '#0B0B0F',
+      launchShowDuration: 1500,
+      launchAutoHide: true,
+      backgroundColor: '#09090B',
+      androidSplashResourceName: 'splash',
       showSpinner: false,
       splashImmersive: true
     }

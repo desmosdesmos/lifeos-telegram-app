@@ -1,16 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
+    <!-- Доверие сертификатам для доменов Сбера -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">ngw.devices.sberbank.ru</domain>
+        <domain includeSubdomains="true">gigachat.devices.sberbank.ru</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </domain-config>
+
+    <!-- Глобальная конфигурация -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />
         </trust-anchors>
     </base-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="true">lumina-server-one.vercel.app</domain>
-        <domain includeSubdomains="true">vercel.app</domain>
-        <domain includeSubdomains="true">localhost</domain>
-        <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain>
-    </domain-config>
+    
+    <!-- Разрешаем отладку (через прокси или пользовательские сертификаты) -->
+    <debug-config>
+        <trust-anchors>
+            <certificates src="user" />
+            <certificates src="system" />
+        </trust-anchors>
+    </debug-config>
 </network-security-config>

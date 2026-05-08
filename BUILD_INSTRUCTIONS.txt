@@ -1,0 +1,56 @@
+=====================================================
+  LUMINA LIFEOS - APK BUILD INSTRUCTIONS
+=====================================================
+
+FIXES APPLIED:
+- Removed duplicate resource: ic_launcher_background.xml
+- Updated compileSdkVersion to 35
+- Downgraded dependencies for compatibility
+
+=====================================================
+OPTION 1: BUILD VIA ANDROID STUDIO (RECOMMENDED)
+=====================================================
+
+Android Studio is now open with your project.
+
+1. Wait for "Gradle Sync" to complete (bottom right)
+2. Click: Build -> Build Bundle(s) / APK(s) -> Build APK(s)
+3. Wait 1-2 minutes
+4. APK location: android\app\build\outputs\apk\debug\app-debug.apk
+
+=====================================================
+OPTION 2: BUILD VIA TERMINAL IN ANDROID STUDIO
+=====================================================
+
+1. Press Alt+F12 (opens Terminal at bottom)
+2. Type: gradlew assembleDebug
+3. Press Enter
+4. Wait for BUILD SUCCESS
+
+=====================================================
+OPTION 3: USE THE BAT FILE
+=====================================================
+
+A console window should be open running the build.
+Wait for "BUILD SUCCESS" message.
+
+=====================================================
+APK LOCATION (after build):
+=====================================================
+
+C:\Users\Yan\Desktop\apk LUMINA\LIFE OS\
+  android\app\build\outputs\apk\debug\app-debug.apk
+
+=====================================================
+INSTALL ON DEVICE:
+=====================================================
+
+1. Copy app-debug.apk to your Android device
+2. Open with file manager
+3. Allow "Install from unknown sources"
+4. Install
+
+OR via USB debugging:
+  adb install app-debug.apk
+
+=====================================================

@@ -67,7 +67,7 @@ export function AIAnalysis() {
         </button>
         <div>
           <h1 className="text-3xl">AI Анализ</h1>
-          <p className="text-white/50 text-xs mt-1">LifeOS Intelligence</p>
+          <p className="text-white/50 text-xs mt-1">Интеллект LifeOS</p>
         </div>
       </motion.div>
 
