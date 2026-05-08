@@ -217,8 +217,12 @@ export function Profile() {
               <div className="flex-1 min-w-0">
                 <p className="text-white/60 text-xs mb-1">{item.label}</p>
                 {isEditing && isSelect ? (
-                  <select value={editedData[item.key as keyof typeof editedData]} onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} className="w-full bg-white/5 rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]">
-                    {item.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                  <select 
+                    value={editedData[item.key as keyof typeof editedData]} 
+                    onChange={(e) => setEditedData({ ...editedData, [item.key]: e.target.value })} 
+                    className="w-full bg-neutral-900 text-white rounded-[12px] px-3 py-2 text-sm outline-none border border-white/10 focus:ring-2 focus:ring-[#4DA3FF] appearance-none"
+                  >
+                    {item.options?.map((opt) => <option key={opt} value={opt} className="bg-neutral-900 text-white">{opt}</option>)}
                   </select>
                 ) : isEditing && isNumber ? (
                   <input type={item.type} value={editedData[item.key as keyof typeof editedData] || ''} onChange={(e) => setEditedData({ ...editedData, [item.key]: item.type === 'number' ? Number(e.target.value) : e.target.value })} className="w-full bg-white/5 rounded-[12px] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[#4DA3FF]" />

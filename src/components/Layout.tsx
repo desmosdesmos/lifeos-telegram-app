@@ -36,8 +36,8 @@ export function Layout() {
   ];
 
   return (
-    <div className="relative w-full h-screen bg-background overflow-hidden text-white font-sans selection:bg-primary/30 flex flex-col">
-      <main className="flex-1 overflow-y-auto pb-20">
+    <div className="relative w-full min-h-screen bg-background text-white font-sans selection:bg-primary/30 flex flex-col">
+      <main className="flex-1 pb-32">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -45,7 +45,7 @@ export function Layout() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="w-full h-full"
+            className="w-full"
           >
             <Outlet />
           </motion.div>
@@ -54,7 +54,7 @@ export function Layout() {
 
       {/* Standard Native-Style Bottom Navigation */}
       <nav 
-        className={`fixed bottom-0 left-0 right-0 z-[100] w-full transition-transform duration-300 ease-out bg-background/80 backdrop-blur-xl border-t border-white/5 pb-6 ${
+        className={`fixed bottom-0 left-0 right-0 z-[100] w-full transition-transform duration-300 ease-out bg-background/80 backdrop-blur-xl border-t border-white/5 safe-area-bottom pb-4 ${
           isHidden ? 'translate-y-full' : 'translate-y-0'
         }`}
       >

@@ -449,32 +449,27 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
     
     setIsProcessing(true);
     
-    // Создаём Blob URL вместо base64
-    const photoUrl = URL.createObjectURL(file);
-    console.log('✅ Created Blob URL, size:', Math.round(file.size / 1024), 'KB');
-    
-    // Небольшая задержка
-    setTimeout(() => {
-      try {
-        onAdd({
-          date: new Date().toISOString().split('T')[0],
-          photo: photoUrl,
-          weight: Number(weight) || 0,
-          notes,
-        });
-        console.log('✅ Photo added to state');
-        setWeight('');
-        setNotes('');
-      } catch (err) {
-        console.error('❌ Error adding photo:', err);
-        alert('Ошибка при добавлении фото');
-      } finally {
-        setIsProcessing(false);
-        if (fileInputRef.current) {
-          fileInputRef.current.value = '';
-        }
+    // Также сохраняем base64 для постоянного хранения в localStorage
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      console.log('✅ Created Base64, size:', Math.round(base64.length / 1024), 'KB');
+      
+      onAdd({
+        date: new Date().toLocaleDateString('ru-RU'),
+        photo: base64,
+        weight: Number(weight) || 0,
+        notes,
+      });
+      
+      setIsProcessing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    }, 50);
+      setWeight('');
+      setNotes('');
+    };
+    reader.readAsDataURL(file);
   };
 
   return (

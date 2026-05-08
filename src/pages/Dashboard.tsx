@@ -72,7 +72,7 @@ export function Dashboard() {
     <motion.div 
       initial={{ opacity: 0 }} 
       animate={{ opacity: 1 }} 
-      className="w-full min-h-screen bg-background px-5 pt-8 pb-6 overflow-y-auto"
+      className="w-full min-h-screen bg-background px-5 pt-12 pb-10 safe-area-top"
     >
       {/* Header */}
       <header className="flex items-center justify-between mb-8">

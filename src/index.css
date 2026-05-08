@@ -32,6 +32,14 @@ body {
   background: #09090B;
 }
 
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 /* Glassmorphism styles - refined for visionOS feel */
 .glass-card {
   background: rgba(255, 255, 255, 0.03);
