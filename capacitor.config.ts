@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.lumina.lifeos',
+  appId: 'lumina.web',
   appName: 'Lumina LifeOS',
   webDir: 'dist',
   server: {

@@ -2,15 +2,14 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
-// Эти данные нужно получить в консоли Firebase (https://console.firebase.google.com/)
-// Создайте новый проект -> Добавьте Web-приложение -> Скопируйте конфиг
+// Автоматически заполнено на основе вашего google-services.json
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "YOUR_API_KEY",
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || "YOUR_AUTH_DOMAIN",
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || "YOUR_PROJECT_ID",
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || "YOUR_STORAGE_BUCKET",
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || "YOUR_MESSAGING_SENDER_ID",
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || "YOUR_APP_ID"
+  apiKey: "AIzaSyABNQyiD4-Sk7j6W5NtLWen-pGvMeESyAE",
+  authDomain: "lumina-2882e.firebaseapp.com",
+  projectId: "lumina-2882e",
+  storageBucket: "lumina-2882e.firebasestorage.app",
+  messagingSenderId: "524253422941",
+  appId: "1:524253422941:android:d9f2b7f4151d5fd409b4b4"
 };
 
 const app = initializeApp(firebaseConfig);
