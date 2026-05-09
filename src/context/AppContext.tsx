@@ -97,6 +97,7 @@ interface AppState {
   goals: Goal[];
   hasCompletedOnboarding: boolean;
   topUsers: TopUser[];
+  isLocalMode: boolean;
 }
 
 const defaultState: AppState = {
@@ -124,6 +125,7 @@ const defaultState: AppState = {
     { id: '4', name: 'Елена', score: 89, avatarUrl: 'https://i.pravatar.cc/150?u=4' },
     { id: '5', name: 'Иван', score: 85, avatarUrl: 'https://i.pravatar.cc/150?u=5' },
   ],
+  isLocalMode: false,
 };
 
 interface AppContextType {
@@ -147,6 +149,7 @@ interface AppContextType {
   removeGoal: (id: number) => void;
   completeOnboarding: () => void;
   resetAllData: () => void;
+  setLocalMode: () => void;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -327,6 +330,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setState(prev => ({ ...prev, hasCompletedOnboarding: true }));
   }, []);
 
+  const setLocalMode = useCallback(() => {
+    setState(prev => ({ ...prev, isLocalMode: true }));
+  }, []);
+
   const resetAllData = useCallback(() => {
     setState(defaultState);
     localStorage.removeItem(STORAGE_KEY);
@@ -354,6 +361,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       removeGoal,
       completeOnboarding,
       resetAllData,
+      setLocalMode,
     }}>
       {children}
     </AppContext.Provider>

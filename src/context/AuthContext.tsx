@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { signInWithRedirect, signOut, onAuthStateChanged, getRedirectResult } from 'firebase/auth';
+import { signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 
@@ -18,32 +18,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Безопасная инициализация для мобильных устройств
     let isMounted = true;
 
-    const initAuth = async () => {
-      try {
-        // Проверяем результат редиректа только на мобилках или если был редирект
-        await getRedirectResult(auth);
-      } catch (error) {
-        console.error('Redirect Auth Error:', error);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (isMounted) {
+        setUser(firebaseUser);
+        setLoading(false);
       }
-
-      const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if (isMounted) {
-          setUser(firebaseUser);
-          setLoading(false);
-        }
-      });
-
-      return unsubscribe;
-    };
-
-    const unsubscribePromise = initAuth();
+    });
 
     return () => {
       isMounted = false;
-      unsubscribePromise.then(unsub => unsub && unsub());
+      unsubscribe();
     };
   }, []);
 

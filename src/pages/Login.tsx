@@ -3,8 +3,11 @@ import { Sparkles } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useState } from 'react';
 
+import { useApp } from '../context/AppContext';
+
 export function Login() {
   const { signInWithGoogle } = useAuth();
+  const { setLocalMode } = useApp();
   const [error, setError] = useState<string | null>(null);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
@@ -14,7 +17,7 @@ export function Login() {
       setError(null);
       await signInWithGoogle();
     } catch (err: any) {
-      setError('Не удалось войти через Google. Убедитесь, что у вас есть интернет.');
+      setError('Не удалось войти через Google. Вы можете использовать приложение локально.');
       console.error(err);
     } finally {
       setIsLoggingIn(false);
@@ -52,7 +55,7 @@ export function Login() {
           </motion.button>
 
           <button 
-            onClick={() => window.location.reload()} // Просто обновляем, чтобы попробовать еще раз
+            onClick={() => setLocalMode()}
             className="w-full py-4 glass-card rounded-2xl text-white/40 text-sm font-medium hover:text-white/60 transition-colors"
           >
             Использовать без аккаунта (только локально)
