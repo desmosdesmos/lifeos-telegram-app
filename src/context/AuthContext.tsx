@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Инициализация плагина Google Auth для Web (в Android он берет из capacitor.config.ts)
     if (!Capacitor.isNativePlatform()) {
       GoogleAuth.initialize({
-        clientId: 'YOUR_WEB_CLIENT_ID', // Будет заменен пользователем
+        clientId: '524253422941-f3glrvsqhn01uce91ku3lvv3e6abbvp4.apps.googleusercontent.com',
         scopes: ['profile', 'email'],
         grantOfflineAccess: true,
       });
