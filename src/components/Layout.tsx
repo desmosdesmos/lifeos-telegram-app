@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useEffect } from 'react';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { Capacitor } from '@capacitor/core';
+import { ScrollToTop } from './ScrollToTop';
 
 export function Layout() {
   const location = useLocation();
@@ -37,6 +38,7 @@ export function Layout() {
 
   return (
     <div className="relative w-full min-h-screen bg-background text-white font-sans selection:bg-primary/30 flex flex-col">
+      <ScrollToTop />
       <main className="flex-1 pb-32">
         <AnimatePresence mode="wait">
           <motion.div

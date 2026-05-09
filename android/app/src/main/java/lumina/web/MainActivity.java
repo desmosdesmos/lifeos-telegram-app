@@ -9,7 +9,8 @@ import com.getcapacitor.BridgeActivity;
 
 public class MainActivity extends BridgeActivity {
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(com.codetrixstudio.capacitor.GoogleAuth.GoogleAuth.class);
         super.onCreate(savedInstanceState);
 
         Window window = getWindow();
