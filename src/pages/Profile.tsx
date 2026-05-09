@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Camera, Edit2, RotateCcw, Sparkles, Trophy, TrendingUp, Apple, Dumbbell, DollarSign } from 'lucide-react';
+import { ChevronLeft, Camera, Edit2, RotateCcw, Sparkles, Trophy, TrendingUp, Apple, Dumbbell, DollarSign, LogOut, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 
 const goals = ['Набор мышечной массы', 'Похудение', 'Поддержание веса', 'Улучшение здоровья', 'Повышение продуктивности', 'Выносливость', 'Сушка'];
 const lifestyles = ['Сидячий', 'Умеренно активный', 'Активный', 'Очень активный'];
@@ -11,6 +12,7 @@ const genders = ['Мужской', 'Женский'];
 export function Profile() {
   const navigate = useNavigate();
   const { state, updateProfile, resetAllData } = useApp();
+  const { user, logout, signInWithGoogle } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showGuide, setShowGuide] = useState(false);
   const [editedName, setEditedName] = useState(state.profile.name);
@@ -179,6 +181,48 @@ export function Profile() {
             </motion.div>
           );
         })}
+      </div>
+
+      {/* Account Settings */}
+      <div className="space-y-3 mb-8">
+        <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] px-1 mb-4">Настройки аккаунта</p>
+        
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.4 }}
+          className="glass-card rounded-[24px] p-5"
+        >
+          {user ? (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">Авторизован как</p>
+                <p className="text-sm font-bold text-white/90">{user.email || 'Пользователь Google'}</p>
+              </div>
+              <button 
+                onClick={logout}
+                className="px-4 py-2 bg-red-500/20 text-red-500 rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-red-500/30 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Выйти
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">Режим</p>
+                <p className="text-sm font-bold text-white/90">Локальный (без синхронизации)</p>
+              </div>
+              <button 
+                onClick={signInWithGoogle}
+                className="px-4 py-2 bg-primary/20 text-primary rounded-xl text-xs font-bold flex items-center gap-2 hover:bg-primary/30 transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Войти
+              </button>
+            </div>
+          )}
+        </motion.div>
       </div>
 
       {/* Modals */}

@@ -19,8 +19,8 @@ function AppContent() {
     );
   }
 
-  // Если пользователь не авторизован, не выбрал локальный режим и еще не прошел онбординг - показываем вход
-  if (!user && !state.isLocalMode && !state.hasCompletedOnboarding) {
+  // Если пользователь не авторизован и не выбрал локальный режим - показываем вход
+  if (!user && !state.isLocalMode) {
     return <Login />;
   }
 
