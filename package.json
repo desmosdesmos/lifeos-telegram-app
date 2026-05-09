@@ -19,6 +19,7 @@
     "@capacitor/cli": "^8.2.0",
     "@capacitor/core": "^8.2.0",
     "@capacitor/status-bar": "^6.0.2",
+    "@codetrix-studio/capacitor-google-auth": "^3.4.0-rc.4",
     "@telegram-apps/sdk": "^3.4.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -1,8 +1,10 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { signInWithRedirect, signOut, onAuthStateChanged } from 'firebase/auth';
+import { signOut, onAuthStateChanged, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
 import type { User } from 'firebase/auth';
-import { auth, googleProvider } from '../lib/firebase';
+import { auth } from '../lib/firebase';
+import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
+import { Capacitor } from '@capacitor/core';
 
 interface AuthContextType {
   user: User | null;
@@ -20,6 +22,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
+    // Инициализация плагина Google Auth для Web (в Android он берет из capacitor.config.ts)
+    if (!Capacitor.isNativePlatform()) {
+      GoogleAuth.initialize({
+        clientId: 'YOUR_WEB_CLIENT_ID', // Будет заменен пользователем
+        scopes: ['profile', 'email'],
+        grantOfflineAccess: true,
+      });
+    }
+
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (isMounted) {
         setUser(firebaseUser);
@@ -35,14 +46,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     try {
-      await signInWithRedirect(auth, googleProvider);
+      // 1. Получаем токен через нативный плагин Capacitor
+      const googleUser = await GoogleAuth.signIn();
+      
+      if (!googleUser.authentication || !googleUser.authentication.idToken) {
+        throw new Error('Google Sign-In failed: No ID token returned');
+      }
+
+      // 2. Авторизуемся в Firebase с полученным токеном
+      const credential = GoogleAuthProvider.credential(googleUser.authentication.idToken);
+      await signInWithCredential(auth, credential);
     } catch (error) {
-      console.error('Error signing in with Google:', error);
+      console.error('Error signing in with Google Native:', error);
       throw error;
     }
   };
+
   const logout = async () => {
     try {
+      await GoogleAuth.signOut();
       await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -63,3 +85,4 @@ export function useAuth() {
   }
   return context;
 }
+
