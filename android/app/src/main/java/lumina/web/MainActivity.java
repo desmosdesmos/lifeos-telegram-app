@@ -1,4 +1,4 @@
-package com.lumina.lifeos;
+package lumina.web;
 
 import android.graphics.Color;
 import android.os.Bundle;
