@@ -19,11 +19,6 @@ html, body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-  display: flex;
-  justify-content: center;
-}
-
 #root {
   width: 100%;
   max-width: 430px; /* Standardize for modern large phones */

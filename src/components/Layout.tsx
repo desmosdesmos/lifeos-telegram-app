@@ -10,7 +10,12 @@ import { ScrollToTop } from './ScrollToTop';
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { isHidden } = useBottomBar();
+  const { isHidden, show } = useBottomBar();
+
+  // Reset bottom bar visibility on route change
+  useEffect(() => {
+    show();
+  }, [location.pathname, show]);
 
   useEffect(() => {
     const setupSystemBars = async () => {
