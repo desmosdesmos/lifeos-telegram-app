@@ -10,6 +10,28 @@ const goals = ['Набор мышечной массы', 'Похудение', '
 const lifestyles = ['Сидячий', 'Умеренно активный', 'Активный', 'Очень активный'];
 const genders = ['Мужской', 'Женский'];
 
+interface UserProfileLocal {
+  name: string;
+  age: number;
+  weight: number;
+  height: number;
+  gender: 'male' | 'female';
+  goal: string;
+  lifestyle: string;
+  avatarUrl?: string;
+  showInLeaderboard?: boolean;
+}
+
+interface ProfileField {
+  label: string;
+  value: string | number;
+  key: keyof UserProfileLocal;
+  color: string;
+  type: 'select' | 'number';
+  options?: string[];
+  suffix?: string;
+}
+
 export function Profile() {
   const navigate = useNavigate();
   const { state, updateProfile, resetAllData } = useApp();
@@ -39,13 +61,13 @@ export function Profile() {
     }
   };
 
-  const profileFields = [
-    { label: 'Пол', value: state.profile.gender === 'male' ? 'Мужской' : 'Женский', key: 'gender', color: '#4DA3FF', type: 'select' as const, options: genders },
-    { label: 'Возраст', value: state.profile.age, key: 'age', color: '#F59E0B', type: 'number' as const, suffix: ' лет' },
-    { label: 'Вес', value: state.profile.weight, key: 'weight', color: '#4DA3FF', type: 'number' as const, suffix: ' кг' },
-    { label: 'Рост', value: state.profile.height, key: 'height', color: '#22C55E', type: 'number' as const, suffix: ' см' },
-    { label: 'Цель', value: state.profile.goal, key: 'goal', color: '#F59E0B', type: 'select' as const, options: goals },
-    { label: 'Образ жизни', value: state.profile.lifestyle, key: 'lifestyle', color: '#4DA3FF', type: 'select' as const, options: lifestyles },
+  const profileFields: ProfileField[] = [
+    { label: 'Пол', value: state.profile.gender === 'male' ? 'Мужской' : 'Женский', key: 'gender', color: '#4DA3FF', type: 'select', options: genders },
+    { label: 'Возраст', value: state.profile.age, key: 'age', color: '#F59E0B', type: 'number', suffix: ' лет' },
+    { label: 'Вес', value: state.profile.weight, key: 'weight', color: '#4DA3FF', type: 'number', suffix: ' кг' },
+    { label: 'Рост', value: state.profile.height, key: 'height', color: '#22C55E', type: 'number', suffix: ' см' },
+    { label: 'Цель', value: state.profile.goal, key: 'goal', color: '#F59E0B', type: 'select', options: goals },
+    { label: 'Образ жизни', value: state.profile.lifestyle, key: 'lifestyle', color: '#4DA3FF', type: 'select', options: lifestyles },
   ];
 
   return (

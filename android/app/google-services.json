@@ -12,7 +12,20 @@
           "package_name": "lumina.web"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "524253422941-mvjcfg556uklpculhtsg9590if632nn8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "lumina.web",
+            "certificate_hash": "1868ae37842529099989ed679a124344dfe159c2"
+          }
+        },
+        {
+          "client_id": "524253422941-f3glrvsqhn01uce91ku3lvv3e6abbvp4.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyABNQyiD4-Sk7j6W5NtLWen-pGvMeESyAE"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "524253422941-f3glrvsqhn01uce91ku3lvv3e6abbvp4.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

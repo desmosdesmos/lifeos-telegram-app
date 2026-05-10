@@ -21,28 +21,56 @@ export function Login() {
       setError(null);
       await signInWithGoogle();
     } catch (err: any) {
-      setError('Не удалось войти через Google. Используйте вход через почту.');
-      console.error(err);
+      console.error('Google Auth Error:', err);
+      // Если это ошибка нативного плагина, выводим подсказку
+      if (err.message?.includes('GoogleAuth')) {
+        setError('Ошибка Google сервисов. Пожалуйста, используйте вход через почту.');
+      } else {
+        setError(`Ошибка Google: ${err.message || 'Неизвестная ошибка'}`);
+      }
     } finally {
       setIsLoggingIn(false);
     }
   };
 
   const handleEmailAuth = async () => {
-    if (!email || !password) return;
+    if (!email || !password) {
+      setError('Введите почту и пароль');
+      return;
+    }
     try {
       setIsLoggingIn(true);
       setError(null);
       if (mode === 'email-login') {
         await signInWithEmail(email, password);
       } else {
+        if (!name && mode === 'email-signup') {
+          setError('Введите имя');
+          setIsLoggingIn(false);
+          return;
+        }
         await signUpWithEmail(email, password, name);
       }
     } catch (err: any) {
-      setError(err.message.includes('auth/user-not-found') ? 'Пользователь не найден' : 
-              err.message.includes('auth/wrong-password') ? 'Неверный пароль' :
-              err.message.includes('auth/email-already-in-use') ? 'Email уже занят' :
-              'Ошибка авторизации. Проверьте данные.');
+      console.error('Email Auth Error:', err);
+      const code = err.code || '';
+      const msg = err.message || '';
+      
+      if (code === 'auth/user-not-found' || msg.includes('user-not-found')) {
+        setError('Пользователь не найден. Зарегистрируйтесь.');
+      } else if (code === 'auth/wrong-password' || msg.includes('wrong-password')) {
+        setError('Неверный пароль.');
+      } else if (code === 'auth/invalid-email' || msg.includes('invalid-email')) {
+        setError('Некорректный формат почты.');
+      } else if (code === 'auth/email-already-in-use' || msg.includes('email-already-in-use')) {
+        setError('Эта почта уже используется.');
+      } else if (code === 'auth/weak-password' || msg.includes('weak-password')) {
+        setError('Слишком слабый пароль (мин. 6 символов).');
+      } else if (code === 'auth/network-request-failed') {
+        setError('Ошибка сети. Проверьте интернет.');
+      } else {
+        setError(`Ошибка: ${msg}`);
+      }
     } finally {
       setIsLoggingIn(false);
     }
@@ -180,13 +208,24 @@ export function Login() {
         </AnimatePresence>
 
         {error && (
-          <motion.p 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mt-6 text-red-400 text-xs bg-red-400/10 p-3 rounded-xl border border-red-400/20"
-          >
-            {error}
-          </motion.p>
+          <div className="mt-6 space-y-3">
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="text-red-400 text-xs bg-red-400/10 p-3 rounded-xl border border-red-400/20"
+            >
+              {error}
+            </motion.p>
+            <div className="bg-white/[0.03] p-4 rounded-xl text-left border border-white/5">
+              <p className="text-[10px] text-white/40 uppercase font-bold mb-2">Если ничего не помогает:</p>
+              <ul className="text-[10px] text-white/60 space-y-1 list-disc pl-3 leading-relaxed">
+                <li>Убедитесь, что включен VPN (если сервисы Google недоступны)</li>
+                <li>Проверьте корректность Email (должен быть формат user@mail.com)</li>
+                <li>Пароль должен быть не менее 6 символов</li>
+                <li>Если вы разработчик: проверьте SHA-1 ключи в консоли Firebase</li>
+              </ul>
+            </div>
+          </div>
         )}
 
         <div className="mt-16 pt-8 border-t border-white/5">
