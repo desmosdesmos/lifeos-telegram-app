@@ -11,6 +11,8 @@ function AppContent() {
   const { state, completeOnboarding } = useApp();
   const { user, loading } = useAuth();
 
+  console.log('App: Auth state', { user: user?.uid, loading, isLocalMode: state.isLocalMode, hasCompletedOnboarding: state.hasCompletedOnboarding });
+
   if (loading) {
     return (
       <div className="fixed inset-0 bg-[#09090B] flex items-center justify-center">

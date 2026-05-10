@@ -25,6 +25,8 @@ html, body {
   margin: 0 auto;
   min-height: 100vh;
   background: #09090B;
+  position: relative;
+  overflow-x: hidden;
 }
 
 .safe-area-bottom {
@@ -32,7 +34,7 @@ html, body {
 }
 
 .safe-area-top {
-  padding-top: env(safe-area-inset-top, 0px);
+  margin-top: env(safe-area-inset-top, 0px);
 }
 
 /* Glassmorphism styles - refined for visionOS feel */

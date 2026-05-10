@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
+import { CustomSelect } from '../components/CustomSelect';
 
 const goals = ['Набор мышечной массы', 'Похудение', 'Поддержание веса', 'Улучшение здоровья', 'Повышение продуктивности', 'Выносливость', 'Сушка'];
 const lifestyles = ['Сидячий', 'Умеренно активный', 'Активный', 'Очень активный'];
@@ -48,7 +49,7 @@ export function Profile() {
   ];
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-16 pb-12 safe-area-top overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-16 pb-12 safe-area-top">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -146,11 +147,34 @@ export function Profile() {
       </div>
 
       {/* Profile Fields */}
-      <div className="space-y-3 mb-8">
+      <div className="space-y-4 mb-8">
         <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] px-1 mb-4">Личные параметры</p>
         
         {profileFields.map((item, index) => {
-          const isSelect = item.type === 'select';
+          if (item.type === 'select') {
+            return (
+              <motion.div
+                key={item.key}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.1 + index * 0.05 }}
+              >
+                <CustomSelect
+                  label={item.label}
+                  value={item.key === 'gender' ? (state.profile.gender === 'male' ? 'Мужской' : 'Женский') : (state.profile[item.key as keyof typeof state.profile] as string)}
+                  options={item.options || []}
+                  onChange={(val) => {
+                    if (item.key === 'gender') {
+                      handleFieldChange('gender', val === 'Мужской' ? 'male' : 'female');
+                    } else {
+                      handleFieldChange(item.key, val);
+                    }
+                  }}
+                />
+              </motion.div>
+            );
+          }
+
           return (
             <motion.div
               key={item.key}
@@ -161,22 +185,12 @@ export function Profile() {
             >
               <div className="flex-1 min-w-0">
                 <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{item.label}</p>
-                {isSelect ? (
-                  <select 
-                    value={state.profile[item.key as keyof typeof state.profile] as string} 
-                    onChange={(e) => handleFieldChange(item.key, e.target.value)} 
-                    className="w-full bg-neutral-900 text-white rounded-xl px-3 py-2 text-sm outline-none border border-white/5 focus:border-primary/50 appearance-none"
-                  >
-                    {item.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                  </select>
-                ) : (
-                  <input 
-                    type={item.type} 
-                    value={state.profile[item.key as keyof typeof state.profile] as string | number} 
-                    onChange={(e) => handleFieldChange(item.key, item.type === 'number' ? Number(e.target.value) : e.target.value)} 
-                    className="w-full bg-transparent text-lg font-bold outline-none border-b border-white/5 focus:border-primary/50"
-                  />
-                )}
+                <input 
+                  type={item.type} 
+                  value={state.profile[item.key as keyof typeof state.profile] as string | number} 
+                  onChange={(e) => handleFieldChange(item.key, item.type === 'number' ? Number(e.target.value) : e.target.value)} 
+                  className="w-full bg-transparent text-lg font-bold outline-none border-b border-white/5 focus:border-primary/50"
+                />
               </div>
             </motion.div>
           );

@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { calculateMacroTargets, type MacroTargets } from '../utils/macroCalculator';
 import { useAuth } from './AuthContext';
 import { db } from '../lib/firebase';
-import { doc, setDoc, onSnapshot } from 'firebase/firestore';
+import { doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 interface UserProfile {
   name: string;
@@ -118,13 +118,7 @@ const defaultState: AppState = {
   transactions: [],
   goals: [],
   hasCompletedOnboarding: false,
-  topUsers: [
-    { id: '1', name: 'Александр', score: 98, avatarUrl: 'https://i.pravatar.cc/150?u=1' },
-    { id: '2', name: 'Мария', score: 95, avatarUrl: 'https://i.pravatar.cc/150?u=2' },
-    { id: '3', name: 'Дмитрий', score: 92, avatarUrl: 'https://i.pravatar.cc/150?u=3' },
-    { id: '4', name: 'Елена', score: 89, avatarUrl: 'https://i.pravatar.cc/150?u=4' },
-    { id: '5', name: 'Иван', score: 85, avatarUrl: 'https://i.pravatar.cc/150?u=5' },
-  ],
+  topUsers: [],
   isLocalMode: false,
 };
 
@@ -162,7 +156,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return { ...defaultState, ...parsed };
       } catch {
         return defaultState;
       }
@@ -170,27 +165,35 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return defaultState;
   });
 
+  const [realTopUsers, setRealTopUsers] = useState<TopUser[]>([]);
+
+  // Calculate Life Score for the current user
+  const lifeScore = useMemo(() => {
+    const nutritionScore = Math.min(20, (state.meals.length / 3) * 20);
+    const sleepScore = state.sleepDays.length > 0 
+      ? (state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length / 100) * 20 
+      : 0;
+    const fitnessScore = Math.min(20, (state.workouts.filter(w => w.completed).length / 3) * 20);
+    const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
+    const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
+    const financeScore = income > 0 ? Math.min(20, ((income - expenses) / income) * 20) : 0;
+    const goalsScore = state.goals.length > 0 ? (state.goals.filter(g => g.completed).length / state.goals.length) * 20 : 0;
+    return Math.round(nutritionScore + sleepScore + fitnessScore + financeScore + goalsScore);
+  }, [state]);
+
   // Загрузка данных из Firebase при входе
   useEffect(() => {
     if (!user) return;
 
-    console.log('🔄 Syncing with Firebase for user:', user.uid);
     const userDocRef = doc(db, 'users', user.uid);
-
-    // Подписываемся на изменения в облаке
     const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
       if (docSnap.exists()) {
         const cloudData = docSnap.data() as AppState;
-        console.log('✅ Data loaded from Cloud');
         setState(prev => ({
           ...prev,
-          ...cloudData,
-          // Сохраняем локальные topUsers, так как они пока статические
-          topUsers: defaultState.topUsers 
+          ...cloudData
         }));
       } else {
-        // Если в облаке пусто, отправляем туда текущие локальные данные
-        console.log('📡 First sync: pushing local data to Cloud');
         setDoc(userDocRef, state);
       }
     });
@@ -198,15 +201,51 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [user]);
 
-  // Сохранение локально и в облако при изменениях
+  // Загрузка реального рейтинга
+  useEffect(() => {
+    const fetchTopUsers = async () => {
+      try {
+        const q = query(
+          collection(db, 'leaderboard'),
+          orderBy('score', 'desc'),
+          limit(100)
+        );
+        const querySnapshot = await getDocs(q);
+        const users: TopUser[] = [];
+        querySnapshot.forEach((doc) => {
+          users.push({ id: doc.id, ...doc.data() } as TopUser);
+        });
+        setRealTopUsers(users);
+      } catch (err) {
+        console.error('Error fetching leaderboard:', err);
+      }
+    };
+
+    fetchTopUsers();
+    const interval = setInterval(fetchTopUsers, 60000); // Обновляем раз в минуту
+    return () => clearInterval(interval);
+  }, []);
+
+  // Сохранение в облако и обновление рейтинга
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     
     if (user) {
       const userDocRef = doc(db, 'users', user.uid);
       setDoc(userDocRef, state).catch(err => console.error('❌ Cloud Save Error:', err));
+
+      // Обновляем рейтинг, если пользователь разрешил
+      if (state.profile.showInLeaderboard) {
+        const leaderboardRef = doc(db, 'leaderboard', user.uid);
+        setDoc(leaderboardRef, {
+          name: state.profile.name || 'Аноним',
+          score: lifeScore,
+          avatarUrl: state.profile.avatarUrl || null,
+          updatedAt: new Date().toISOString()
+        }).catch(err => console.error('❌ Leaderboard Update Error:', err));
+      }
     }
-  }, [state, user]);
+  }, [state, user, lifeScore]);
 
   const macroTargets = calculateMacroTargets({
     weight: state.profile.weight,
@@ -341,7 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      state,
+      state: { ...state, topUsers: realTopUsers },
       macroTargets,
       updateProfile,
       addMeal,
