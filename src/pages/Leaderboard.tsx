@@ -2,11 +2,13 @@ import { motion } from 'motion/react';
 import { ChevronLeft, Trophy, Medal, Star, Info, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../context/AuthContext';
 import { useMemo } from 'react';
 
 export function Leaderboard() {
   const navigate = useNavigate();
   const { state, updateProfile } = useApp();
+  const { user: authUser } = useAuth();
 
   // Рассчитываем наш Life Score (аналогично Dashboard)
   const myLifeScore = useMemo(() => {
@@ -24,22 +26,30 @@ export function Leaderboard() {
 
   // Формируем финальный список топа
   const displayUsers = useMemo(() => {
-    let users = [...state.topUsers];
+    const rawUsers = state.topUsers || [];
+    const uid = authUser?.uid;
     
-    if (state.profile.showInLeaderboard) {
-      // Добавляем себя в список
-      const me = {
-        id: 'me',
+    // Если мы уже есть в списке (по UID), помечаем как isMe
+    let users = rawUsers.map(u => ({
+      ...u,
+      isMe: uid ? u.id === uid : false
+    }));
+
+    // Если мы участвуем в топе, но нас нет в списке (например, не попали в топ-100 или еще не обновилось)
+    const alreadyInList = users.some(u => u.isMe);
+    
+    if (state.profile.showInLeaderboard && !alreadyInList) {
+      users.push({
+        id: 'me-local',
         name: state.profile.name || 'Вы',
         score: myLifeScore,
         avatarUrl: state.profile.avatarUrl,
         isMe: true
-      };
-      users.push(me);
+      });
     }
     
     return users.sort((a, b) => b.score - a.score);
-  }, [state.topUsers, state.profile.showInLeaderboard, state.profile.name, state.profile.avatarUrl, myLifeScore]);
+  }, [state.topUsers, state.profile.showInLeaderboard, state.profile.name, state.profile.avatarUrl, myLifeScore, authUser]);
 
   return (
     <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-16 pb-12 safe-area-top">
@@ -95,7 +105,7 @@ export function Leaderboard() {
       {/* Leaderboard List */}
       <div className="space-y-3">
         {displayUsers.map((user, index) => {
-          const isMe = user.id === 'me';
+          const isMe = user.isMe;
           const isTop3 = index < 3;
           
           return (
