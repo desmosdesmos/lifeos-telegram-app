@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { Send, X } from 'lucide-react';
 import { motion } from 'motion/react';
 import { useBottomBar } from '../context/BottomBarContext';
-import { sendMessage, getQuickTip } from '../utils/aiService';
+import { sendMessage, getQuickTip, type AIContext } from '../utils/aiService';
 
 interface Message {
   type: 'user' | 'ai';
@@ -10,12 +10,12 @@ interface Message {
 }
 
 interface AIConsultantProps {
-  type: 'nutrition' | 'sleep' | 'fitness' | 'finance' | 'goals';
+  type: Exclude<AIContext['type'], 'analysis'>;
   onClose: () => void;
-  userData?: any;
+  userData?: AIContext['userData'];
 }
 
-const consultants = {
+const consultants: Record<string, any> = {
   nutrition: {
     name: 'Анна',
     title: 'AI Нутрициолог',

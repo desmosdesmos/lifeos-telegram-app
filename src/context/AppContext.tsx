@@ -5,7 +5,7 @@ import { useAuth } from './AuthContext';
 import { db } from '../lib/firebase';
 import { doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
-interface UserProfile {
+export interface UserProfile {
   name: string;
   age: number;
   weight: number;
@@ -17,7 +17,7 @@ interface UserProfile {
   showInLeaderboard?: boolean;
 }
 
-interface TopUser {
+export interface TopUser {
   id: string;
   name: string;
   score: number;
@@ -25,7 +25,7 @@ interface TopUser {
   isMe?: boolean;
 }
 
-interface Meal {
+export interface Meal {
   id: number;
   name: string;
   calories: number;
@@ -35,7 +35,7 @@ interface Meal {
   time: string;
 }
 
-interface SleepDay {
+export interface SleepDay {
   id: number;
   date: string;
   bedtime: string;
@@ -47,7 +47,7 @@ interface SleepDay {
   lightSleep: string;
 }
 
-interface Workout {
+export interface Workout {
   id: number;
   name: string;
   duration: number;
@@ -58,7 +58,7 @@ interface Workout {
   photos?: string[];
 }
 
-interface ProgressPhoto {
+export interface ProgressPhoto {
   id: number;
   date: string;
   photo: string;
@@ -66,7 +66,7 @@ interface ProgressPhoto {
   notes?: string;
 }
 
-interface Transaction {
+export interface Transaction {
   id: number;
   name: string;
   amount: number;
@@ -75,7 +75,7 @@ interface Transaction {
   date: string;
 }
 
-interface Goal {
+export interface Goal {
   id: number;
   title: string;
   description: string;
@@ -87,7 +87,7 @@ interface Goal {
   completed: boolean;
 }
 
-interface AppState {
+export interface AppState {
   profile: UserProfile;
   meals: Meal[];
   sleepDays: SleepDay[];

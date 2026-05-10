@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Camera, Edit2, RotateCcw, Sparkles, Trophy, TrendingUp, Apple, Dumbbell, DollarSign, LogOut, LogIn } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type UserProfile } from '../context/AppContext';
 import { useAuth } from '../context/AuthContext';
 import { CustomSelect } from '../components/CustomSelect';
 
@@ -10,22 +10,10 @@ const goals = ['Набор мышечной массы', 'Похудение', '
 const lifestyles = ['Сидячий', 'Умеренно активный', 'Активный', 'Очень активный'];
 const genders = ['Мужской', 'Женский'];
 
-interface UserProfileLocal {
-  name: string;
-  age: number;
-  weight: number;
-  height: number;
-  gender: 'male' | 'female';
-  goal: string;
-  lifestyle: string;
-  avatarUrl?: string;
-  showInLeaderboard?: boolean;
-}
-
 interface ProfileField {
   label: string;
   value: string | number;
-  key: keyof UserProfileLocal;
+  key: keyof UserProfile;
   color: string;
   type: 'select' | 'number';
   options?: string[];
@@ -40,7 +28,7 @@ export function Profile() {
   const [showGuide, setShowGuide] = useState(false);
   const [editedName, setEditedName] = useState(state.profile.name);
 
-  const handleFieldChange = (key: string, value: any) => {
+  const handleFieldChange = (key: keyof UserProfile, value: string | number) => {
     updateProfile({ [key]: value });
   };
 
@@ -172,7 +160,7 @@ export function Profile() {
       <div className="space-y-4 mb-8">
         <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] px-1 mb-4">Личные параметры</p>
         
-        {profileFields.map((item: any, index: number) => {
+        {profileFields.map((item: ProfileField, index: number) => {
           const fieldKey = item.key;
           if (item.type === 'select') {
             return (
