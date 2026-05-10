@@ -4,14 +4,11 @@ import { AppProvider, useApp } from './context/AppContext';
 import { BottomBarProvider } from './context/BottomBarContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { Onboarding } from './pages/Onboarding';
-import { Login } from './pages/Login';
 import './index.css';
 
 function AppContent() {
   const { state, completeOnboarding } = useApp();
-  const { user, loading } = useAuth();
-
-  console.log('App: Auth state', { user: user?.uid, loading, isLocalMode: state.isLocalMode, hasCompletedOnboarding: state.hasCompletedOnboarding });
+  const { loading } = useAuth();
 
   if (loading) {
     return (
@@ -21,11 +18,8 @@ function AppContent() {
     );
   }
 
-  // Если пользователь не авторизован и не выбрал локальный режим - показываем вход
-  if (!user && !state.isLocalMode) {
-    return <Login />;
-  }
-
+  // Временно отключаем обязательный логин, так как он работает нестабильно на Android
+  // Всегда разрешаем вход в приложение
   if (!state.hasCompletedOnboarding) {
     return <Onboarding onComplete={completeOnboarding} />;
   }

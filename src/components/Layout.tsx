@@ -45,13 +45,13 @@ export function Layout() {
     <div className="relative w-full min-h-screen bg-background text-white font-sans selection:bg-primary/30 flex flex-col">
       <ScrollToTop />
       <main className="flex-1 pb-32">
-        <AnimatePresence mode="wait">
+        <AnimatePresence initial={false}>
           <motion.div
             key={location.pathname}
-            initial={{ opacity: 0, scale: 0.98 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 1.02 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15, ease: "linear" }}
             className="w-full"
           >
             <Outlet />

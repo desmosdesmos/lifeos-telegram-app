@@ -3,7 +3,7 @@ import type { ReactNode } from 'react';
 import { calculateMacroTargets, type MacroTargets } from '../utils/macroCalculator';
 import { useAuth } from './AuthContext';
 import { db } from '../lib/firebase';
-import { doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
+import { doc, setDoc, collection, query, orderBy, limit, getDocs } from 'firebase/firestore';
 
 export interface UserProfile {
   name: string;
@@ -151,6 +151,14 @@ const AppContext = createContext<AppContextType | null>(null);
 
 const STORAGE_KEY = 'lifeos_app_data_v3';
 
+const dummyTopUsers: TopUser[] = [
+  { id: 'bot-1', name: 'Александр', score: 95, avatarUrl: 'https://i.pravatar.cc/150?u=1' },
+  { id: 'bot-2', name: 'Мария', score: 92, avatarUrl: 'https://i.pravatar.cc/150?u=2' },
+  { id: 'bot-3', name: 'Дмитрий', score: 88, avatarUrl: 'https://i.pravatar.cc/150?u=3' },
+  { id: 'bot-4', name: 'Елена', score: 85, avatarUrl: 'https://i.pravatar.cc/150?u=4' },
+  { id: 'bot-5', name: 'Иван', score: 82, avatarUrl: 'https://i.pravatar.cc/150?u=5' },
+];
+
 export function AppProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [state, setState] = useState<AppState>(() => {
@@ -166,7 +174,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return defaultState;
   });
 
-  const [realTopUsers, setRealTopUsers] = useState<TopUser[]>([]);
+  const [realTopUsers, setRealTopUsers] = useState<TopUser[]>(dummyTopUsers);
 
   // Calculate Life Score for the current user
   const lifeScore = useMemo(() => {
@@ -182,27 +190,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return Math.round(nutritionScore + sleepScore + fitnessScore + financeScore + goalsScore);
   }, [state]);
 
-  // Загрузка данных из Firebase при входе
-  useEffect(() => {
-    if (!user) return;
-
-    const userDocRef = doc(db, 'users', user.uid);
-    const unsubscribe = onSnapshot(userDocRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const cloudData = docSnap.data() as AppState;
-        setState(prev => ({
-          ...prev,
-          ...cloudData
-        }));
-      } else {
-        setDoc(userDocRef, state);
-      }
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  // Загрузка реального рейтинга
+  // Загрузка реального рейтинга (если есть интернет и Firebase доступен)
   useEffect(() => {
     const fetchTopUsers = async () => {
       try {
@@ -216,35 +204,33 @@ export function AppProvider({ children }: { children: ReactNode }) {
         querySnapshot.forEach((doc) => {
           users.push({ id: doc.id, ...doc.data() } as TopUser);
         });
-        setRealTopUsers(users);
+        
+        if (users.length > 0) {
+          setRealTopUsers(users);
+        } else {
+          setRealTopUsers(dummyTopUsers);
+        }
       } catch (err) {
-        console.error('Error fetching leaderboard:', err);
+        console.warn('Leaderboard fetch failed, using dummy data:', err);
+        setRealTopUsers(dummyTopUsers);
       }
     };
 
     fetchTopUsers();
-    const interval = setInterval(fetchTopUsers, 60000); // Обновляем раз в минуту
-    return () => clearInterval(interval);
   }, []);
 
-  // Сохранение в облако и обновление рейтинга
+  // Сохранение локально и в облако (если авторизован)
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     
-    if (user) {
-      const userDocRef = doc(db, 'users', user.uid);
-      setDoc(userDocRef, state).catch(err => console.error('❌ Cloud Save Error:', err));
-
-      // Обновляем рейтинг, если пользователь разрешил
-      if (state.profile.showInLeaderboard) {
-        const leaderboardRef = doc(db, 'leaderboard', user.uid);
-        setDoc(leaderboardRef, {
-          name: state.profile.name || 'Аноним',
-          score: lifeScore,
-          avatarUrl: state.profile.avatarUrl || null,
-          updatedAt: new Date().toISOString()
-        }).catch(err => console.error('❌ Leaderboard Update Error:', err));
-      }
+    if (user && state.profile.showInLeaderboard) {
+      const leaderboardRef = doc(db, 'leaderboard', user.uid);
+      setDoc(leaderboardRef, {
+        name: state.profile.name || 'Аноним',
+        score: lifeScore,
+        avatarUrl: state.profile.avatarUrl || null,
+        updatedAt: new Date().toISOString()
+      }).catch(() => {});
     }
   }, [state, user, lifeScore]);
 
