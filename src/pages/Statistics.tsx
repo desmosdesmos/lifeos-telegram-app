@@ -3,6 +3,7 @@ import { ChevronLeft, TrendingUp, TrendingDown, Activity, Moon, Flame } from 'lu
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { CustomSelect } from '../components/CustomSelect';
 import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
 
 export function Statistics() {
@@ -50,7 +51,7 @@ export function Statistics() {
   const maxWorkoutCalories = workoutData.length > 0 ? Math.max(...workoutData.map(w => w.calories || 0), 100) : 100;
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-8 flex items-center gap-3">
         <button onClick={() => navigate('/')} className="w-10 h-10 rounded-[12px] glass-card flex items-center justify-center active:scale-95 transition-transform">
@@ -59,15 +60,17 @@ export function Statistics() {
         <div className="flex-1">
           <h1 className="text-3xl">Статистика</h1>
           {availableMonths.length > 0 && (
-            <select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="glass-card rounded-[12px] px-3 py-1 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B] text-sm mt-1"
-            >
-              {availableMonths.map(month => (
-                <option key={month} value={month}>{getMonthDisplay(month)}</option>
-              ))}
-            </select>
+            <div className="mt-2">
+              <CustomSelect
+                label="Период"
+                value={getMonthDisplay(selectedMonth)}
+                options={availableMonths.map(m => getMonthDisplay(m))}
+                onChange={(displayVal) => {
+                  const month = availableMonths.find(m => getMonthDisplay(m) === displayVal);
+                  if (month) setSelectedMonth(month);
+                }}
+              />
+            </div>
           )}
         </div>
       </motion.div>

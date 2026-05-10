@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
+import { CustomSelect } from '../components/CustomSelect';
 
 const categoryColors: Record<string, string> = {
   health: '#EF4444',
@@ -353,20 +354,12 @@ function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: any) => void; onCancel: (
           />
         </div>
         <div>
-          <label className="text-white/60 text-sm mb-2 block">Ед. изм.</label>
-          <select 
-            value={unit} 
-            onChange={(e) => setUnit(e.target.value)}
-            className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base font-medium"
-          >
-            <option value="раз">раз</option>
-            <option value="дней">дней</option>
-            <option value="км">км</option>
-            <option value="кг">кг</option>
-            <option value="₽">₽</option>
-            <option value="часов">часов</option>
-            <option value="страниц">страниц</option>
-          </select>
+          <CustomSelect
+            label="Ед. изм."
+            value={unit}
+            options={['раз', 'дней', 'км', 'кг', '₽', 'часов', 'страниц']}
+            onChange={(val) => setUnit(val)}
+          />
         </div>
       </div>
 

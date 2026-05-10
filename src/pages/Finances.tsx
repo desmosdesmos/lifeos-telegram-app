@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router';
 import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
+import { CustomSelect } from '../components/CustomSelect';
 import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
 import {
   parsePDF,
@@ -40,7 +41,7 @@ export function Finances() {
   }).filter(c => c.amount > 0);
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6 overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-6">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <div className="flex items-center justify-between mb-4">
@@ -61,17 +62,16 @@ export function Finances() {
         </div>
         {/* Month Selector */}
         {availableMonths.length > 0 && (
-          <div className="flex items-center gap-2 mb-2">
-            <Calendar className="w-4 h-4 text-white/50" />
-            <select 
-              value={selectedMonth} 
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E] text-sm flex-1"
-            >
-              {availableMonths.map(month => (
-                <option key={month} value={month}>{getMonthDisplay(month)}</option>
-              ))}
-            </select>
+          <div className="mb-4">
+            <CustomSelect 
+              label="Период"
+              value={getMonthDisplay(selectedMonth)} 
+              options={availableMonths.map(m => getMonthDisplay(m))}
+              onChange={(displayVal) => {
+                const month = availableMonths.find(m => getMonthDisplay(m) === displayVal);
+                if (month) setSelectedMonth(month);
+              }}
+            />
           </div>
         )}
         <div className="flex items-center gap-2">
@@ -299,10 +299,12 @@ export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; o
             <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
           </div>
           <div>
-            <label className="text-white/60 text-sm mb-2 block">Категория</label>
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]">
-              {categories.map(c => <option key={c} value={c}>{c}</option>)}
-            </select>
+            <CustomSelect
+              label="Категория"
+              value={category}
+              options={categories}
+              onChange={(val) => setCategory(val)}
+            />
           </div>
           <div className="flex gap-3 pt-4">
             <button onClick={onClose} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
