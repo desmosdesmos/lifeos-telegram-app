@@ -150,24 +150,25 @@ export function Profile() {
       <div className="space-y-4 mb-8">
         <p className="text-white/40 text-[11px] font-bold uppercase tracking-[0.2em] px-1 mb-4">Личные параметры</p>
         
-        {profileFields.map((item, index) => {
+        {profileFields.map((item: any, index: number) => {
+          const fieldKey = item.key;
           if (item.type === 'select') {
             return (
               <motion.div
-                key={item.key}
+                key={fieldKey}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.1 + index * 0.05 }}
               >
                 <CustomSelect
                   label={item.label}
-                  value={item.key === 'gender' ? (state.profile.gender === 'male' ? 'Мужской' : 'Женский') : (state.profile[item.key as keyof typeof state.profile] as string)}
+                  value={fieldKey === 'gender' ? (state.profile.gender === 'male' ? 'Мужской' : 'Женский') : (state.profile[fieldKey as keyof typeof state.profile] as string)}
                   options={item.options || []}
                   onChange={(val) => {
-                    if (item.key === 'gender') {
+                    if (fieldKey === 'gender') {
                       handleFieldChange('gender', val === 'Мужской' ? 'male' : 'female');
                     } else {
-                      handleFieldChange(item.key, val);
+                      handleFieldChange(fieldKey, val);
                     }
                   }}
                 />
@@ -177,7 +178,7 @@ export function Profile() {
 
           return (
             <motion.div
-              key={item.key}
+              key={fieldKey}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.1 + index * 0.05 }}
@@ -188,15 +189,15 @@ export function Profile() {
                 <input 
                   type={item.type} 
                   inputMode={item.type === 'number' ? 'numeric' : 'text'}
-                  value={state.profile[item.key as keyof typeof state.profile] as string | number} 
+                  value={state.profile[fieldKey as keyof typeof state.profile] as string | number} 
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => {
                     const val = e.target.value;
                     if (item.type === 'number') {
                       // Allow empty string for clearing, then convert to number
-                      handleFieldChange(item.key, val === '' ? 0 : Number(val));
+                      handleFieldChange(fieldKey, val === '' ? 0 : Number(val));
                     } else {
-                      handleFieldChange(item.key, val);
+                      handleFieldChange(fieldKey, val);
                     }
                   }} 
                   className="w-full bg-transparent text-lg font-bold outline-none border-b border-white/5 focus:border-primary/50"
