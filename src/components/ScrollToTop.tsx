@@ -5,10 +5,26 @@ export function ScrollToTop() {
   const { pathname } = useLocation();
 
   useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
-    // Also scroll parent elements if needed
-    document.documentElement.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
-    document.body.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+    // Aggressive scroll reset for all possible scrolling elements
+    const elementsToScroll = [
+      window,
+      document.documentElement,
+      document.body,
+      ...Array.from(document.querySelectorAll('.overflow-y-auto'))
+    ];
+
+    elementsToScroll.forEach(el => {
+      try {
+        el.scrollTo({ top: 0, left: 0, behavior: 'instant' as any });
+      } catch (e) {}
+    });
+
+    // Delayed reset for dynamic content
+    const timer = setTimeout(() => {
+      window.scrollTo(0, 0);
+    }, 10);
+
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   return null;

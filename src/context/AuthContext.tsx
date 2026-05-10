@@ -22,14 +22,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // Инициализация плагина Google Auth для Web (в Android он берет из capacitor.config.ts)
-    if (!Capacitor.isNativePlatform()) {
-      GoogleAuth.initialize({
-        clientId: '524253422941-f3glrvsqhn01uce91ku3lvv3e6abbvp4.apps.googleusercontent.com',
-        scopes: ['profile', 'email'],
-        grantOfflineAccess: true,
-      });
-    }
+    // Инициализация плагина Google Auth для Web
+    const initGoogle = async () => {
+      try {
+        if (!Capacitor.isNativePlatform()) {
+          await GoogleAuth.initialize({
+            clientId: '524253422941-f3glrvsqhn01uce91ku3lvv3e6abbvp4.apps.googleusercontent.com',
+            scopes: ['profile', 'email'],
+            grantOfflineAccess: true,
+          });
+          console.log('Auth: Google Auth Web initialized');
+        }
+      } catch (err) {
+        console.warn('Auth: Google Auth initialization warning (Web):', err);
+      }
+    };
+
+    initGoogle();
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (isMounted) {
