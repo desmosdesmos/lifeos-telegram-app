@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Moon, Plus, Trash2, Brain, TrendingUp, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type SleepDay } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 
 export function Sleep() {
@@ -173,7 +173,7 @@ export function Sleep() {
   );
 }
 
-function SleepDayCard({ sleepDay, onDelete }: { sleepDay: any; onDelete: () => void }) {
+function SleepDayCard({ sleepDay, onDelete }: { sleepDay: SleepDay; onDelete: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="glass-card rounded-[20px] p-4">
       <div className="flex items-center justify-between mb-3">
@@ -204,7 +204,7 @@ function SleepDayCard({ sleepDay, onDelete }: { sleepDay: any; onDelete: () => v
   );
 }
 
-function AISleepDoctor({ avgQuality, sleepDays }: { avgQuality: number; sleepDays: any[] }) {
+function AISleepDoctor({ avgQuality, sleepDays }: { avgQuality: number; sleepDays: SleepDay[] }) {
   const getAdvice = () => {
     if (sleepDays.length === 0) {
       return 'Добавьте данные о сне, чтобы получить персональные рекомендации.';

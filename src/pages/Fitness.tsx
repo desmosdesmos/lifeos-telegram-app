@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Dumbbell, Calendar, Flame, Plus, Trash2, Timer, CheckCircle, Clock, BarChart3, Brain, MessageCircle, Camera, Image } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useEffect, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type Workout, type ProgressPhoto } from '../context/AppContext';
 import { useBottomBar } from '../context/BottomBarContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 
@@ -247,7 +247,7 @@ export function Fitness() {
   );
 }
 
-function AITrainer({ workouts }: { workouts: any[] }) {
+function AITrainer({ workouts }: { workouts: Workout[] }) {
   const completed = workouts.filter(w => w.completed).length;
   
   const getAdvice = () => {
@@ -273,7 +273,7 @@ function AITrainer({ workouts }: { workouts: any[] }) {
   );
 }
 
-function TimerModal({ onClose, time, active, setActive, setTime, onAddWorkout }: { onClose: () => void; time: number; active: boolean; setActive: (v: boolean) => void; setTime: (v: number) => void; onAddWorkout: (w: any) => void }) {
+function TimerModal({ onClose, time, active, setActive, setTime, onAddWorkout }: { onClose: () => void; time: number; active: boolean; setActive: (v: boolean) => void; setTime: (v: number) => void; onAddWorkout: (w: Omit<Workout, 'id'>) => void }) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -328,7 +328,7 @@ function TimerModal({ onClose, time, active, setActive, setTime, onAddWorkout }:
 function WeekPlanModal({ onClose, plan, setPlan }: { onClose: () => void; plan: Record<number, string>; setPlan: (v: Record<number, string>) => void }) {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-  const handleSelectWorkout = (workout: any) => {
+  const handleSelectWorkout = (workout: typeof workoutTemplates[0]) => {
     if (selectedDay !== null) {
       setPlan({ ...plan, [selectedDay]: workout.name });
       setSelectedDay(null);
@@ -371,7 +371,7 @@ function WeekPlanModal({ onClose, plan, setPlan }: { onClose: () => void; plan: 
   );
 }
 
-function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: any) => void }) {
+function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: Omit<Workout, 'id'>) => void }) {
   const [name, setName] = useState('');
   const [duration, setDuration] = useState('');
   const [exercises, setExercises] = useState('');
@@ -426,7 +426,7 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: a
   );
 }
 
-function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos?: any[]; onAdd: (p: any) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
+function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }: { onClose: () => void; photos?: ProgressPhoto[]; onAdd: (p: Omit<ProgressPhoto, 'id'>) => void; onRemove: (id: number) => void; fileInputRef: React.RefObject<HTMLInputElement | null> }) {
   const [weight, setWeight] = useState('');
   const [notes, setNotes] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);

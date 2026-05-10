@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Upload, FileText, MessageSquare, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type Transaction } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { CustomSelect } from '../components/CustomSelect';
 import { getAvailableMonths, filterByMonth, getMonthDisplay, getCurrentMonth } from '../utils/dateUtils';
@@ -11,6 +11,7 @@ import {
   parseScreenshot,
   previewImport,
   type ImportedTransaction,
+  type ImportPreview,
 } from '../utils/transactionImporter';
 
 const categories = ['Еда', 'Транспорт', 'Спорт', 'Развлечения', 'Здоровье', 'Образование', 'Другое'];
@@ -234,7 +235,7 @@ export function Finances() {
   );
 }
 
-function AIFinancialAdvisor({ savings, savingsRate, transactions }: { savings: number; savingsRate: number; transactions: any[] }) {
+function AIFinancialAdvisor({ savings, savingsRate, transactions }: { savings: number; savingsRate: number; transactions: Transaction[] }) {
   const getAdvice = () => {
     if (transactions.length === 0) {
       return 'Добавьте данные о финансах для получения рекомендаций.';
@@ -266,7 +267,7 @@ function getCategoryColor(cat: string): string {
   return colors[cat] || '#888888';
 }
 
-export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: any) => void }) {
+export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; onAdd: (t: Omit<Transaction, 'id'>) => void }) {
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
   const [type, setType] = useState<'income' | 'expense'>('expense');
@@ -319,7 +320,8 @@ export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; o
 function ImportModal({ onClose, onImport }: { onClose: () => void; onImport: (t: ImportedTransaction[]) => void }) {
   const [method, setMethod] = useState<'pdf' | 'screenshot' | 'text'>('pdf');
   const [isLoading, setIsLoading] = useState(false);
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState<ImportPreview | null>(null);
+
   const [error, setError] = useState('');
   const [textData, setTextData] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);

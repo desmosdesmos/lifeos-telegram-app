@@ -22,6 +22,16 @@ export interface ImportedTransaction {
 // PDF Импорт (выписки из банков)
 // ============================================
 
+interface PDFTextItem {
+  str: string;
+  dir: string;
+  width: number;
+  height: number;
+  transform: number[];
+  fontName: string;
+  hasEOL: boolean;
+}
+
 export async function parsePDF(
   file: File
 ): Promise<ImportedTransaction[]> {
@@ -43,7 +53,7 @@ export async function parsePDF(
       try {
         const page = await pdf.getPage(i);
         const textContent = await page.getTextContent();
-        const pageText = textContent.items.map((item: any) => item.str).join(' ');
+        const pageText = (textContent.items as PDFTextItem[]).map((item) => item.str).join(' ');
         fullText += pageText + '\n';
         console.log(`Page ${i} text length:`, pageText.length);
       } catch (pageError) {
@@ -461,7 +471,7 @@ export async function parseCSV(
           header: format.hasHeader,
           delimiter: format.delimiter,
           skipEmptyLines: true,
-          complete: (results: any) => {
+          complete: (results: Papa.ParseResult<string[]>) => {
             try {
               const transactions = mapCSVToTransactions(results.data, format);
               resolve(transactions);
@@ -483,7 +493,7 @@ export async function parseCSV(
 
 // Маппинг CSV данных в транзакции
 function mapCSVToTransactions(
-  data: any[],
+  data: string[][],
   format: CSVFormat
 ): ImportedTransaction[] {
   const transactions: ImportedTransaction[] = [];
@@ -495,12 +505,12 @@ function mapCSVToTransactions(
   const startIndex = hasHeader ? 1 : 0;
   
   // Если есть заголовки, создаём маппинг по названиям
-  const headers = hasHeader ? data[0] : null;
+  const headers = hasHeader ? (data[0] as string[]) : null;
   const getColumnIndex = (colDef: number | string | undefined): number => {
     if (colDef === undefined) return -1;
     if (typeof colDef === 'number') return colDef;
     if (headers) {
-      const index = headers.findIndex((h: any) => 
+      const index = headers.findIndex((h) => 
         String(h).toLowerCase().includes(String(colDef).toLowerCase())
       );
       return index !== -1 ? index : -1;

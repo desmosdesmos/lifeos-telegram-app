@@ -2,10 +2,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Plus, Scan, Trash2, Search, Info, ChefHat, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef, useEffect } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type Meal } from '../context/AppContext';
 import { useBottomBar } from '../context/BottomBarContext';
 import { productsDatabase, productCategories, searchProducts } from '../utils/productsDatabase';
-import { bjuGuide } from '../utils/macroCalculator';
+import { bjuGuide, type MacroTargets } from '../utils/macroCalculator';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { searchByBarcode } from '../utils/barcodeDatabase';
 import { Html5Qrcode } from 'html5-qrcode';
@@ -211,7 +211,7 @@ function MacroProgress({ name, current, target, color }: { name: string; current
   );
 }
 
-function AINutritionist({ macros, targets }: { macros: any; targets: any }) {
+function AINutritionist({ macros, targets }: { macros: MacroTargets; targets: MacroTargets }) {
   return (
     <div className="space-y-2">
       <p className="text-sm text-white/80">
@@ -299,7 +299,7 @@ export function AddMealModal({ onClose }: { onClose: () => void }) {
   );
 }
 
-function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: any) => void }) {
+function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: Omit<Meal, 'id'>) => void }) {
   const [barcode, setBarcode] = useState('');
   const [error, setError] = useState('');
   const [scannedProduct, setScannedProduct] = useState<string>('');
@@ -427,7 +427,7 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
       });
     };
 
-    const onScanFailure = (failure: any) => {
+    const onScanFailure = (failure: string | Error) => {
       // Логируем только каждую 10-ю ошибку чтобы не спамить
       if (Math.random() < 0.1) {
         console.log('⚠️ Scan failure (normal):', failure);
@@ -609,7 +609,7 @@ function ScannerModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: a
   );
 }
 
-function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: any) => void }) {
+function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: Omit<Meal, 'id'>) => void }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Все');
 
@@ -619,7 +619,7 @@ function ProductsModal({ onClose, onAdd }: { onClose: () => void; onAdd: (meal: 
       ? productsDatabase
       : productsDatabase.filter(p => p.category === selectedCategory);
 
-  const handleSelectProduct = (product: any) => {
+  const handleSelectProduct = (product: typeof productsDatabase[0]) => {
     const now = new Date();
     const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     onAdd({

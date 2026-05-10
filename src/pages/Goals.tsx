@@ -2,7 +2,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { ChevronLeft, Target, Plus, Calendar, Trophy, Trash2, Edit2, Brain, MessageCircle } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState } from 'react';
-import { useApp } from '../context/AppContext';
+import { useApp, type Goal } from '../context/AppContext';
 import { AIConsultantChat } from '../components/AIConsultantChat';
 import { CustomSelect } from '../components/CustomSelect';
 
@@ -216,7 +216,7 @@ export function Goals() {
   );
 }
 
-function AICoach({ goals }: { goals: any[] }) {
+function AICoach({ goals }: { goals: Goal[] }) {
   const completed = goals.filter(g => g.completed).length;
   const active = goals.filter(g => !g.completed);
   
@@ -249,7 +249,7 @@ function AICoach({ goals }: { goals: any[] }) {
   );
 }
 
-function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: any) => void; onCancel: () => void }) {
+function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: Omit<Goal, 'id'>) => void; onCancel: () => void }) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [target, setTarget] = useState('');
@@ -391,7 +391,7 @@ function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: any) => void; onCancel: (
   );
 }
 
-function EditGoalForm({ goal, onSave, onCancel }: { goal: any; onSave: (data: any) => void; onCancel: () => void }) {
+function EditGoalForm({ goal, onSave, onCancel }: { goal: Goal; onSave: (data: Partial<Goal>) => void; onCancel: () => void }) {
   const [title, setTitle] = useState(goal.title);
   const [progress, setProgress] = useState(goal.progress);
   const [target, setTarget] = useState(goal.target);
@@ -409,11 +409,11 @@ function EditGoalForm({ goal, onSave, onCancel }: { goal: any; onSave: (data: an
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-white/60 text-sm mb-2 block">Прогресс</label>
-          <input type="number" value={progress} onChange={(e) => setProgress(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+          <input type="number" value={progress} onChange={(e) => setProgress(Number(e.target.value))} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
         </div>
         <div>
           <label className="text-white/60 text-sm mb-2 block">Цель</label>
-          <input type="number" value={target} onChange={(e) => setTarget(e.target.value)} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+          <input type="number" value={target} onChange={(e) => setTarget(Number(e.target.value))} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
         </div>
       </div>
       <div className="flex gap-3 pt-4">
