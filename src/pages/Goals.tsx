@@ -345,10 +345,10 @@ function AddGoalForm({ onAdd, onCancel }: { onAdd: (g: Omit<Goal, 'id'>) => void
         <div>
           <label className="text-white/60 text-sm mb-2 block">Цель *</label>
           <input 
-            type="number" 
-            inputMode="numeric"
+            type="text" 
+            inputMode="decimal"
             value={target} 
-            onChange={(e) => setTarget(e.target.value)} 
+            onChange={(e) => setTarget(e.target.value.replace(/[^0-9.]/g, ''))} 
             placeholder="100" 
             className="w-full glass-card rounded-[16px] px-4 py-4 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF] text-base font-medium" 
           />
@@ -409,11 +409,25 @@ function EditGoalForm({ goal, onSave, onCancel }: { goal: Goal; onSave: (data: P
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className="text-white/60 text-sm mb-2 block">Прогресс</label>
-          <input type="number" value={progress} onChange={(e) => setProgress(Number(e.target.value))} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+          <input 
+            type="text" 
+            inputMode="decimal"
+            value={progress === 0 ? '' : progress} 
+            placeholder="0"
+            onChange={(e) => setProgress(e.target.value === '' ? 0 : Number(e.target.value.replace(/[^0-9.]/g, '')))} 
+            className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+          />
         </div>
         <div>
           <label className="text-white/60 text-sm mb-2 block">Цель</label>
-          <input type="number" value={target} onChange={(e) => setTarget(Number(e.target.value))} className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+          <input 
+            type="text" 
+            inputMode="decimal"
+            value={target === 0 ? '' : target} 
+            placeholder="0"
+            onChange={(e) => setTarget(e.target.value === '' ? 0 : Number(e.target.value.replace(/[^0-9.]/g, '')))} 
+            className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+          />
         </div>
       </div>
       <div className="flex gap-3 pt-4">

@@ -405,16 +405,37 @@ function AddWorkoutModal({ onClose, onAdd }: { onClose: () => void; onAdd: (w: O
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-white/60 text-sm mb-2 block">Длительность (мин)</label>
-              <input type="number" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="60" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={duration} 
+                onChange={(e) => setDuration(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="60" 
+                className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" 
+              />
             </div>
             <div>
               <label className="text-white/60 text-sm mb-2 block">Ккал</label>
-              <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="350" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={calories} 
+                onChange={(e) => setCalories(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="350" 
+                className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" 
+              />
             </div>
           </div>
           <div>
             <label className="text-white/60 text-sm mb-2 block">Упражнений</label>
-            <input type="number" value={exercises} onChange={(e) => setExercises(e.target.value)} placeholder="8" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" />
+            <input 
+              type="text" 
+              inputMode="decimal"
+              value={exercises} 
+              onChange={(e) => setExercises(e.target.value.replace(/[^0-9.]/g, ''))} 
+              placeholder="8" 
+              className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#F59E0B]" 
+            />
           </div>
           <div className="flex gap-3 pt-4">
             <button onClick={onClose} className="flex-1 py-4 glass-card rounded-[20px] text-white font-medium">Отмена</button>
@@ -531,7 +552,14 @@ function ProgressPhotosModal({ onClose, photos, onAdd, onRemove, fileInputRef }:
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <input type="number" value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="Вес (кг)" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={weight} 
+                onChange={(e) => setWeight(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="Вес (кг)" 
+                className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" 
+              />
               <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Заметка" className="glass-card rounded-[12px] px-3 py-2 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
             </div>
           </div>

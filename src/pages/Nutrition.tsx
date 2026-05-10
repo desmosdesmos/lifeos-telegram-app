@@ -273,20 +273,48 @@ export function AddMealModal({ onClose }: { onClose: () => void }) {
           </div>
           <div>
             <label className="text-white/60 text-sm mb-2 block">Калории</label>
-            <input type="number" value={calories} onChange={(e) => setCalories(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+            <input 
+              type="text" 
+              inputMode="decimal"
+              value={calories} 
+              onChange={(e) => setCalories(e.target.value.replace(/[^0-9.]/g, ''))} 
+              placeholder="0 ккал" 
+              className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+            />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label className="text-white/60 text-sm mb-2 block">Белки (г)</label>
-              <input type="number" value={protein} onChange={(e) => setProtein(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={protein} 
+                onChange={(e) => setProtein(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="0" 
+                className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+              />
             </div>
             <div>
               <label className="text-white/60 text-sm mb-2 block">Жиры (г)</label>
-              <input type="number" value={fat} onChange={(e) => setFat(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={fat} 
+                onChange={(e) => setFat(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="0" 
+                className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+              />
             </div>
             <div>
               <label className="text-white/60 text-sm mb-2 block">Углеводы (г)</label>
-              <input type="number" value={carbs} onChange={(e) => setCarbs(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" />
+              <input 
+                type="text" 
+                inputMode="decimal"
+                value={carbs} 
+                onChange={(e) => setCarbs(e.target.value.replace(/[^0-9.]/g, ''))} 
+                placeholder="0" 
+                className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#4DA3FF]" 
+              />
             </div>
           </div>
           <div className="flex gap-3 pt-4">

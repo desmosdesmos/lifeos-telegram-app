@@ -297,7 +297,14 @@ export function AddTransactionModal({ onClose, onAdd }: { onClose: () => void; o
           </div>
           <div>
             <label className="text-white/60 text-sm mb-2 block">Сумма (₽)</label>
-            <input type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0" className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" />
+            <input 
+              type="text" 
+              inputMode="decimal"
+              value={amount} 
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ''))} 
+              placeholder="0" 
+              className="w-full glass-card rounded-[16px] px-4 py-3 bg-white/5 outline-none focus:ring-2 focus:ring-[#22C55E]" 
+            />
           </div>
           <div>
             <CustomSelect
