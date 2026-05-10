@@ -195,16 +195,20 @@ export function Profile() {
               className="glass-card rounded-[24px] p-5 flex items-center gap-4"
             >
               <div className="flex-1 min-w-0">
-                <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{item.label}</p>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider">{item.label}</p>
+                  {item.suffix && <span className="text-[10px] text-white/20 font-bold">{item.suffix}</span>}
+                </div>
                 <input 
-                  type={item.type} 
-                  inputMode={item.type === 'number' ? 'numeric' : 'text'}
-                  value={state.profile[fieldKey as keyof typeof state.profile] as string | number} 
+                  type="text" 
+                  inputMode="decimal"
+                  pattern="[0-9]*"
+                  value={state.profile[fieldKey] === 0 ? '' : state.profile[fieldKey] as string | number} 
+                  placeholder="0"
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => {
-                    const val = e.target.value;
+                    const val = e.target.value.replace(/[^0-9.]/g, '');
                     if (item.type === 'number') {
-                      // Allow empty string for clearing, then convert to number
                       handleFieldChange(fieldKey, val === '' ? 0 : Number(val));
                     } else {
                       handleFieldChange(fieldKey, val);
