@@ -87,6 +87,12 @@ export interface Goal {
   completed: boolean;
 }
 
+export interface WaterLog {
+  id: number;
+  amount: number;
+  date: string;
+}
+
 export interface AppState {
   profile: UserProfile;
   meals: Meal[];
@@ -95,6 +101,7 @@ export interface AppState {
   progressPhotos: ProgressPhoto[];
   transactions: Transaction[];
   goals: Goal[];
+  waterLogs: WaterLog[];
   hasCompletedOnboarding: boolean;
   topUsers: TopUser[];
   isLocalMode: boolean;
@@ -117,6 +124,7 @@ const defaultState: AppState = {
   progressPhotos: [],
   transactions: [],
   goals: [],
+  waterLogs: [],
   hasCompletedOnboarding: false,
   topUsers: [],
   isLocalMode: false,
@@ -142,6 +150,8 @@ interface AppContextType {
   addGoal: (goal: Omit<Goal, 'id'>) => void;
   updateGoal: (id: number, goal: Partial<Goal>) => void;
   removeGoal: (id: number) => void;
+  addWater: (amount: number) => void;
+  resetWater: () => void;
   completeOnboarding: () => void;
   resetAllData: () => void;
   setLocalMode: () => void;
@@ -178,16 +188,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Calculate Life Score for the current user
   const lifeScore = useMemo(() => {
-    const nutritionScore = Math.min(20, (state.meals.length / 3) * 20);
+    const today = new Date().toISOString().split('T')[0];
+    const todayWater = (state.waterLogs || [])
+      .filter(w => w.date === today)
+      .reduce((sum, w) => sum + w.amount, 0);
+
+    const nutritionScore = Math.min(15, (state.meals.length / 3) * 15);
+    const waterScore = Math.min(10, (todayWater / 2000) * 10);
     const sleepScore = state.sleepDays.length > 0 
       ? (state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length / 100) * 20 
       : 0;
     const fitnessScore = Math.min(20, (state.workouts.filter(w => w.completed).length / 3) * 20);
     const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
     const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const financeScore = income > 0 ? Math.min(20, ((income - expenses) / income) * 20) : 0;
+    const financeScore = income > 0 ? Math.min(15, ((income - expenses) / income) * 15) : 0;
     const goalsScore = state.goals.length > 0 ? (state.goals.filter(g => g.completed).length / state.goals.length) * 20 : 0;
-    return Math.round(nutritionScore + sleepScore + fitnessScore + financeScore + goalsScore);
+    return Math.round(nutritionScore + waterScore + sleepScore + fitnessScore + financeScore + goalsScore);
   }, [state]);
 
   // Загрузка реального рейтинга (если есть интернет и Firebase доступен)
@@ -352,6 +368,22 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }));
   }, []);
 
+  const addWater = useCallback((amount: number) => {
+    const today = new Date().toISOString().split('T')[0];
+    setState(prev => ({
+      ...prev,
+      waterLogs: [...(prev.waterLogs || []), { id: Date.now(), amount, date: today }],
+    }));
+  }, []);
+
+  const resetWater = useCallback(() => {
+    const today = new Date().toISOString().split('T')[0];
+    setState(prev => ({
+      ...prev,
+      waterLogs: (prev.waterLogs || []).filter(w => w.date !== today),
+    }));
+  }, []);
+
   const completeOnboarding = useCallback(() => {
     setState(prev => ({ ...prev, hasCompletedOnboarding: true }));
   }, []);
@@ -386,6 +418,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       addGoal,
       updateGoal,
       removeGoal,
+      addWater,
+      resetWater,
       completeOnboarding,
       resetAllData,
       setLocalMode,

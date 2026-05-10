@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router';
 import { Apple, Moon, Dumbbell, DollarSign, Target, TrendingUp, Zap, Sparkles, ChevronRight, User } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useMemo } from 'react';
+import { WaterWidget } from '../components/WaterWidget';
 
 // Выносим статические данные за пределы компонента
+// ... (rest of imports)
 const LIFE_AREAS_CONFIG = [
   { id: 'nutrition', name: 'Питание', icon: Apple, path: '/nutrition', color: '#22C55E' },
   { id: 'sleep', name: 'Сон', icon: Moon, path: '/sleep', color: '#4DA3FF' },
@@ -113,6 +115,9 @@ export function Dashboard() {
           </div>
         </div>
       </section>
+
+      {/* Water Tracker - New Feature */}
+      <WaterWidget />
 
       {/* Life Areas List - Better Readability */}
       <section className="mb-10">

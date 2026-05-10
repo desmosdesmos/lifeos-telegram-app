@@ -13,19 +13,31 @@ export function AIAnalysis() {
   }, []);
 
   // Calculate metrics based on actual data
+  const today = new Date().toISOString().split('T')[0];
+  const todayWater = (state.waterLogs || [])
+    .filter(w => w.date === today)
+    .reduce((sum, w) => sum + w.amount, 0);
+
   const nutritionScore = state.meals.length > 0 ? Math.min(100, state.meals.length * 25) : 0;
+  const waterScore = Math.min(100, Math.round((todayWater / 2000) * 100));
   const sleepScore = state.sleepDays.length > 0 
     ? Math.round(state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length)
     : 0;
   const fitnessScore = state.workouts.filter(w => w.completed).length * 25;
   
-  const avgEnergy = Math.round((nutritionScore + sleepScore + fitnessScore) / 3);
-  const recoveryScore = Math.round((sleepScore + nutritionScore) / 2);
+  const avgEnergy = Math.round((nutritionScore + sleepScore + fitnessScore + waterScore) / 4);
+  const recoveryScore = Math.round((sleepScore + nutritionScore + waterScore / 2) / 2.5);
   const stressLevel = 100 - avgEnergy;
 
   // Generate issues based on data
   const issues: Array<{ text: string; severity: 'high' | 'medium' | 'low' }> = [];
   
+  if (todayWater < 1000) {
+    issues.push({ text: `Критическое обезвоживание (всего ${todayWater}мл)`, severity: 'high' });
+  } else if (todayWater < 2000) {
+    issues.push({ text: 'Низкий уровень гидратации', severity: 'medium' });
+  }
+
   if (sleepScore < 70 && sleepScore > 0) {
     issues.push({ text: `Недостаток сна (качество: ${sleepScore}%)`, severity: 'high' });
   }
@@ -44,6 +56,10 @@ export function AIAnalysis() {
 
   // Generate recommendations
   const recommendations: string[] = [];
+  if (todayWater < 2000) {
+    recommendations.push('Выпейте стакан воды прямо сейчас');
+    recommendations.push('Держите бутылку воды на виду');
+  }
   if (sleepScore < 70 && sleepScore > 0) {
     recommendations.push('Ложитесь на 30 минут раньше сегодня');
     recommendations.push('Избегайте экранов за 1 час до сна');
