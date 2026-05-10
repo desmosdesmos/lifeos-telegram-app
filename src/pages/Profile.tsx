@@ -187,8 +187,18 @@ export function Profile() {
                 <p className="text-white/40 text-[10px] font-bold uppercase tracking-wider mb-1">{item.label}</p>
                 <input 
                   type={item.type} 
+                  inputMode={item.type === 'number' ? 'numeric' : 'text'}
                   value={state.profile[item.key as keyof typeof state.profile] as string | number} 
-                  onChange={(e) => handleFieldChange(item.key, item.type === 'number' ? Number(e.target.value) : e.target.value)} 
+                  onFocus={(e) => e.target.select()}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (item.type === 'number') {
+                      // Allow empty string for clearing, then convert to number
+                      handleFieldChange(item.key, val === '' ? 0 : Number(val));
+                    } else {
+                      handleFieldChange(item.key, val);
+                    }
+                  }} 
                   className="w-full bg-transparent text-lg font-bold outline-none border-b border-white/5 focus:border-primary/50"
                 />
               </div>

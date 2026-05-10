@@ -58,8 +58,8 @@ const steps = [
 
 export function Onboarding({ onComplete }: OnboardingProps) {
   return (
-    <div className="fixed inset-0 z-50 bg-background overflow-y-auto">
-      <div className="min-h-screen flex flex-col">
+    <div className="fixed inset-0 z-50 bg-background">
+      <div className="h-screen flex flex-col overflow-y-auto">
         {/* Header */}
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-2">

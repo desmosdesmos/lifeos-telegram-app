@@ -1,11 +1,16 @@
 import { motion } from 'motion/react';
 import { ChevronLeft, Zap, AlertCircle, Lightbulb, Heart, Brain, Activity } from 'lucide-react';
 import { useNavigate } from 'react-router';
+import { useEffect } from 'react';
 import { useApp } from '../context/AppContext';
 
 export function AIAnalysis() {
   const navigate = useNavigate();
   const { state } = useApp();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' as any });
+  }, []);
 
   // Calculate metrics based on actual data
   const nutritionScore = state.meals.length > 0 ? Math.min(100, state.meals.length * 25) : 0;

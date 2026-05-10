@@ -35,7 +35,7 @@ export function Nutrition() {
   const totalCarbs = state.meals.reduce((sum, m) => sum + m.carbs, 0);
 
   return (
-    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-40 overflow-y-auto">
+    <div className="w-full min-h-screen bg-[#0B0B0F] px-6 pt-12 pb-40">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
         <div className="flex items-center justify-between mb-4">

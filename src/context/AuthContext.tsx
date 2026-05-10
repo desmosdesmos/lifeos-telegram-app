@@ -1,6 +1,14 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
-import { signOut, onAuthStateChanged, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { 
+  signOut, 
+  onAuthStateChanged, 
+  signInWithCredential, 
+  GoogleAuthProvider,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile
+} from 'firebase/auth';
 import type { User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { GoogleAuth } from '@codetrix-studio/capacitor-google-auth';
@@ -10,6 +18,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   signInWithGoogle: () => Promise<void>;
+  signInWithEmail: (email: string, pass: string) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, name: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -71,9 +81,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithEmail = async (email: string, pass: string) => {
+    await signInWithEmailAndPassword(auth, email, pass);
+  };
+
+  const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+    if (userCredential.user) {
+      await updateProfile(userCredential.user, { displayName: name });
+    }
+  };
+
   const logout = async () => {
     try {
-      await GoogleAuth.signOut();
+      if (Capacitor.isNativePlatform()) {
+        await GoogleAuth.signOut();
+      }
       await signOut(auth);
     } catch (error) {
       console.error('Error signing out:', error);
@@ -81,7 +104,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signInWithGoogle, 
+      signInWithEmail,
+      signUpWithEmail,
+      logout 
+    }}>
       {children}
     </AuthContext.Provider>
   );
