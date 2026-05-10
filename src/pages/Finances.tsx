@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Calendar, Upload, FileText, MessageSquare, Camera } from 'lucide-react';
+import { ChevronLeft, TrendingUp, TrendingDown, PiggyBank, Plus, Trash2, Brain, Wallet, MessageCircle, Upload, FileText, MessageSquare, Camera } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { useState, useRef } from 'react';
 import { useApp } from '../context/AppContext';
