@@ -125,6 +125,7 @@ const defaultState: AppState = {
 interface AppContextType {
   state: AppState;
   macroTargets: MacroTargets;
+  lifeScore: number;
   updateProfile: (profile: Partial<UserProfile>) => void;
   addMeal: (meal: Omit<Meal, 'id'>) => void;
   removeMeal: (id: number) => void;
@@ -382,6 +383,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       state: { ...state, topUsers: realTopUsers },
       macroTargets,
+      lifeScore,
       updateProfile,
       addMeal,
       removeMeal,

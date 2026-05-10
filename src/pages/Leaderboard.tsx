@@ -7,22 +7,8 @@ import { useMemo } from 'react';
 
 export function Leaderboard() {
   const navigate = useNavigate();
-  const { state, updateProfile } = useApp();
+  const { state, updateProfile, lifeScore: myLifeScore } = useApp();
   const { user: authUser } = useAuth();
-
-  // Рассчитываем наш Life Score (аналогично Dashboard)
-  const myLifeScore = useMemo(() => {
-    const nutritionScore = Math.min(20, (state.meals.length / 3) * 20);
-    const sleepScore = state.sleepDays.length > 0 
-      ? (state.sleepDays.reduce((sum, s) => sum + s.quality, 0) / state.sleepDays.length / 100) * 20 
-      : 0;
-    const fitnessScore = Math.min(20, (state.workouts.filter(w => w.completed).length / 3) * 20);
-    const income = state.transactions.filter(t => t.type === 'income').reduce((sum, t) => sum + t.amount, 0);
-    const expenses = state.transactions.filter(t => t.type === 'expense').reduce((sum, t) => sum + t.amount, 0);
-    const financeScore = income > 0 ? Math.min(20, ((income - expenses) / income) * 20) : 0;
-    const goalsScore = state.goals.length > 0 ? (state.goals.filter(g => g.completed).length / state.goals.length) * 20 : 0;
-    return Math.round(nutritionScore + sleepScore + fitnessScore + financeScore + goalsScore);
-  }, [state]);
 
   // Формируем финальный список топа
   const displayUsers = useMemo(() => {
